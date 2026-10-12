@@ -8,7 +8,7 @@ This repository contains the **frontend only**. It is a [React](https://react.de
 
 ## Features
 
-- **Bottom dock navigation** — a fixed, thumb-reachable bar pinned to the foot of the page at every width, with a scroll spy that keeps the section in view lit.
+- **Bottom dock navigation** — a floating, thumb-reachable tray centred at the foot of the page at every width, with a scroll spy that keeps the section in view lit.
 - **KPI overview cards** — diversion rate, waste sorted, points distributed, and active smart bins, including sparkline, mini-bar, and progress visualizations.
 - **Live campus map** — a stylized CSS illustration of campus buildings with six clickable smart-bin markers. Selecting a marker reveals a fill-level tooltip, and the Healthy / Attention / Critical legend summarizes bin status.
 - **Hardware health panel** — overall device health score plus a list of active alerts (camera offline, tank nearly full, servo error).
