@@ -8,14 +8,14 @@ This repository contains the **frontend only**. It is a [React](https://react.de
 
 ## Features
 
-- **Sidebar navigation** with anchor links to each dashboard section.
+- **Bottom dock navigation** — a fixed, thumb-reachable bar pinned to the foot of the page at every width, with a scroll spy that keeps the section in view lit.
 - **KPI overview cards** — diversion rate, waste sorted, points distributed, and active smart bins, including sparkline, mini-bar, and progress visualizations.
 - **Live campus map** — a stylized CSS illustration of campus buildings with six clickable smart-bin markers. Selecting a marker reveals a fill-level tooltip, and the Healthy / Attention / Critical legend summarizes bin status.
 - **Hardware health panel** — overall device health score plus a list of active alerts (camera offline, tank nearly full, servo error).
 - **Analytics section** — an SVG line chart of waste sorted over time with a period selector, and a bar chart of points distributed per day.
 - **Offline sync simulator** — flushes a batch of cached student-point events and updates the points totals, with loading, success, and error handling.
 - **Toast notifications** for user actions (export, device inventory, map controls, chart period, sync result).
-- **Responsive layout** that adapts from a full desktop sidebar layout down to a stacked mobile view.
+- **Responsive layout** that adapts from a wide desktop grid down to a stacked mobile view, with the bottom dock unchanged at both.
 
 > The campus map, charts, and alert data are illustrative mock content. The sync action is simulated locally and performs no network requests.
 
@@ -27,9 +27,10 @@ This repository contains the **frontend only**. It is a [React](https://react.de
 | Build tool / dev server | Vite 8 |
 | Language | JavaScript (JSX, ES modules) |
 | Styling | Tailwind CSS v4 with a design-token layer (`@theme`) |
+| Animation | Motion for React (`motion`) — restrained, reduced-motion-aware transitions |
 | Tooling | npm, `@vitejs/plugin-react`, `@tailwindcss/vite` |
 
-No UI framework or state-management library is used — the app relies on React state/hooks. Styling is done with Tailwind utilities that consume the project's design tokens.
+No UI framework or state-management library is used — the app relies on React state/hooks. Styling is done with Tailwind utilities that consume the project's design tokens. Motion is used only for the bottom dock's active-indicator transition and tap feedback, and it honors `prefers-reduced-motion`.
 
 ### Styling architecture
 
@@ -38,7 +39,7 @@ The styling follows a token-first CSS architecture:
 - **`src/styles/theme.css`** — the single source of truth for design tokens, written with Tailwind v4 `@theme` blocks in three layers:
   1. **Raw color scales** (`--color-primary-*`, `--color-secondary-*`, `--color-neutral-*`, and the utility state colors) — never consumed directly by components.
   2. **Fonts** (`--font-sans`, `--font-heading`, `--font-mono`) — aliased to variables loaded by the Google Fonts `<link>` in `index.html`.
-  3. **Semantic aliases** (`--color-background`, `--color-foreground`, `--color-card`, `--color-border`, `--color-primary-tint`, the `--color-sidebar-*` rail, utility-state pairs, chart/text roles, and elevation) — what components actually build with.
+  3. **Semantic aliases** (`--color-background`, `--color-foreground`, `--color-card`, `--color-border`, `--color-primary-tint`, the `--color-sidebar-*` navigation dock, utility-state pairs, chart/text roles, and elevation) — what components actually build with.
 - **`src/styles/globals.css`** — the entry stylesheet. It imports Tailwind and the token layer, sets base body typography, and themes native browser UI (scrollbars, selection).
 - **`src/styles/components/campus-map.css`** — the one retained component stylesheet. The styled campus map is an absolutely positioned, transformed illustration whose geometry cannot be expressed with Tailwind utilities without heavy arbitrary values, so it lives in its own scoped file.
 - **`src/styles/surfaces.js`** — a shared class recipe for the card/panel shell so the same surface utilities are not duplicated.
@@ -98,7 +99,7 @@ The build output in `dist/` is a static site and can be hosted on any static pro
         │   └── components/
         │       └── campus-map.css  # Scoped campus-map illustration styles
         ├── components/           # One component per dashboard region (+ leaves)
-        │   ├── Sidebar.jsx
+        │   ├── BottomNav.jsx     # Fixed bottom dock (the only navigation)
         │   ├── Topbar.jsx
         │   ├── MetricGrid.jsx
         │   ├── CampusMap.jsx

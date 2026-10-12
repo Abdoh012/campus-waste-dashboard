@@ -158,7 +158,9 @@
   --color-info-bg: var(--color-info-50);
   --color-info-fg: var(--color-info-700);
 
-  /* Sidebar — a fixed dark rail with its own contrast set. Exact values. */
+  /* Navigation dock — the fixed dark pine base at the foot of the page, with
+     its own contrast set. The token family keeps its original `sidebar` name;
+     the dock is the rail's successor, not a new color system. Exact values. */
   --color-sidebar: #10251f;
   --color-sidebar-foreground: #e7f1eb;
   --color-sidebar-muted: #7d9b90;

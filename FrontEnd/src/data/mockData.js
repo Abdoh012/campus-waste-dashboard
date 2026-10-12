@@ -6,11 +6,19 @@
  * fetch/query calls that return the same shapes and the components stay intact.
  */
 
+/**
+ * Bottom-dock destinations, in document order so the dock reads left-to-right
+ * with the page. Labels are sized for the four dock slots; the hrefs are the
+ * section ids the dashboard already renders. Iconography is chrome rather than
+ * content, so it is owned by the dock itself (`NAV_ICONS` in `BottomNav.jsx`)
+ * and keyed by these ids. Setting `disabled: true` on a destination renders it
+ * as an inert, untabbable slot. No destination is disabled today.
+ */
 export const navItems = [
-  { id: 'overview', href: '#overview', icon: '⌂', label: 'Overview' },
-  { id: 'campus-map', href: '#campus-map', icon: '⌖', label: 'Live campus map' },
-  { id: 'analytics', href: '#analytics', icon: '◒', label: 'Analytics' },
-  { id: 'hardware', href: '#hardware', icon: '◉', label: 'Hardware health' },
+  { id: 'overview', href: '#overview', label: 'Overview' },
+  { id: 'campus-map', href: '#campus-map', label: 'Map' },
+  { id: 'hardware', href: '#hardware', label: 'Hardware' },
+  { id: 'analytics', href: '#analytics', label: 'Analytics' },
 ];
 
 export const dashboardSummary = {
