@@ -34,6 +34,23 @@ export default function Topbar({ showToast }) {
           <span className="mr-[7px] inline-block h-1.5 w-1.5 rounded-full bg-live shadow-[0_0_0_3px_var(--color-live-halo)]"></span>
           Live operations
         </div>
+        {/* Network health, promoted from the bottom dock. The dot carries the
+            state at every width; the labelled block is its arm's-length form,
+            separated from the pill by a hairline rather than a full border. */}
+        <div className="flex shrink-0 items-center gap-2.5">
+          <span aria-hidden="true" className="h-6 w-px shrink-0 bg-border max-[700px]:hidden"></span>
+          <span
+            aria-hidden="true"
+            className="h-2 w-2 shrink-0 rounded-full bg-live shadow-[0_0_0_4px_var(--color-live-halo)]"
+          ></span>
+          <span className="sr-only">Network online · Last sync 32 sec ago</span>
+          <div aria-hidden="true" className="max-[700px]:hidden">
+            <strong className="block text-[12px] font-semibold leading-none">Network online</strong>
+            <small className="mt-[5px] block font-mono text-[9px] leading-none text-label tabular-nums">
+              Last sync · 32 sec ago
+            </small>
+          </div>
+        </div>
         <button className="relative border-0 bg-transparent text-[21px] text-icon-muted max-[700px]:hidden" type="button" aria-label="Notifications">
           <span className="absolute right-0 top-0 h-[5px] w-[5px] rounded-full bg-destructive"></span>♧
         </button>

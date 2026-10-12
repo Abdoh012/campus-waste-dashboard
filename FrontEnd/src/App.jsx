@@ -69,8 +69,9 @@ function useActiveSection() {
         });
         settle();
       },
-      // Keep the dock itself out of the measurement band.
-      { rootMargin: '0px 0px -70px 0px' },
+      // Keep the floating dock (and the circle it lifts above its edge) out of
+      // the measurement band.
+      { rootMargin: '0px 0px -110px 0px' },
     );
 
     targets.forEach((target) => observer.observe(target.el));
@@ -136,8 +137,9 @@ export default function App() {
   return (
     <div className="min-h-screen">
       {/* Bottom padding clears the fixed dock so the sync banner and footer are
-          never hidden behind it. */}
-      <main className="mx-auto w-full max-w-[1600px] px-10 pt-8 pb-[88px] max-[1100px]:px-6 max-[1100px]:pt-[26px] max-[700px]:px-[15px] max-[700px]:pt-[22px] max-[700px]:pb-[calc(88px_+_env(safe-area-inset-bottom))]">
+          never hidden behind it: 68px tray + 14px lift + the 28px the current
+          tab's circle rises above the tray's edge. */}
+      <main className="mx-auto w-full max-w-[1600px] px-10 pt-8 pb-[112px] max-[1100px]:px-6 max-[1100px]:pt-[26px] max-[700px]:px-[15px] max-[700px]:pt-[22px] max-[700px]:pb-[calc(112px_+_env(safe-area-inset-bottom))]">
         <Topbar showToast={showToast} />
 
         <MetricGrid totalPoints={totalPoints} />
