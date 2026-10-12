@@ -1,0 +1,353 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-12T00:00:00Z",
+  "title": "Design System: Think Outside The Box — Campus Waste Intelligence",
+  "extensions": {
+    "colorMeta": {
+      "canopy-green": {
+        "role": "primary",
+        "displayName": "Canopy Green",
+        "canonical": "#46ab83",
+        "tonalRamp": ["#0a241c", "#163f32", "#1f5a47", "#27765b", "#46ab83", "#7cc7a3", "#aadac2", "#d2ecdf"]
+      },
+      "canopy-green-deep": {
+        "role": "primary",
+        "displayName": "Pine Green",
+        "canonical": "#27765b",
+        "tonalRamp": ["#071511", "#123226", "#1b4c3b", "#27765b", "#3f9772", "#67b894", "#9ad3b7", "#ccebdb"]
+      },
+      "canopy-green-hover": {
+        "role": "primary",
+        "displayName": "Canopy Green Hover",
+        "canonical": "#397a5d",
+        "tonalRamp": ["#0d271e", "#173f31", "#245945", "#397a5d", "#4f9a78", "#78b99b", "#a8d6c1", "#d8efe4"]
+      },
+      "seedling-tint": {
+        "role": "primary",
+        "displayName": "Seedling Tint",
+        "canonical": "#e2f4e8",
+        "tonalRamp": ["#1c4a37", "#2f6b51", "#4d9273", "#79b79b", "#a8d4c2", "#c9e6da", "#ddf0e7", "#e2f4e8"]
+      },
+      "seedling-line": {
+        "role": "primary",
+        "displayName": "Seedling Line",
+        "canonical": "#d1ebdc",
+        "tonalRamp": ["#1a4634", "#2e664d", "#4a8d6e", "#72b295", "#9ccdb8", "#bde0d0", "#c9e7d7", "#d1ebdc"]
+      },
+      "harvest-amber": {
+        "role": "secondary",
+        "displayName": "Harvest Amber",
+        "canonical": "#ef9f4c",
+        "tonalRamp": ["#3c220b", "#6b3d14", "#91531b", "#b96c22", "#ef9f4c", "#f4ba78", "#f8d0a3", "#fce7cf"]
+      },
+      "harvest-amber-tint": {
+        "role": "secondary",
+        "displayName": "Harvest Amber Tint",
+        "canonical": "#f8d6ad",
+        "tonalRamp": ["#5a3a12", "#8a5a20", "#b57d31", "#d59a4d", "#eab877", "#f2cb97", "#f6d7b2", "#f8d6ad"]
+      },
+      "iris-violet": {
+        "role": "tertiary",
+        "displayName": "Iris Violet",
+        "canonical": "#a180c7",
+        "tonalRamp": ["#3a2a52", "#523a72", "#6a4d92", "#8463ad", "#a180c7", "#b8a0d6", "#ccbce3", "#f3eef9"]
+      },
+      "sky-blue": {
+        "role": "neutral",
+        "displayName": "Sky Blue",
+        "canonical": "#6e95dc",
+        "tonalRamp": ["#223b66", "#2f5185", "#3d67a6", "#4f7cc0", "#6e95dc", "#8fade6", "#b0c6ef", "#e8eef8"]
+      },
+      "sun-gold": {
+        "role": "neutral",
+        "displayName": "Sun Gold",
+        "canonical": "#e6a54d",
+        "tonalRamp": ["#4a2f0d", "#7a4d15", "#a86c1e", "#c98a30", "#e6a54d", "#efbb78", "#f4d0a0", "#fbe6c9"]
+      },
+      "live-green": {
+        "role": "primary",
+        "displayName": "Live Green",
+        "canonical": "#48b37c",
+        "tonalRamp": ["#0c3122", "#145238", "#1f7551", "#2f976a", "#48b37c", "#74c99c", "#a3dfbd", "#d3f1e0"]
+      },
+      "chalk": {
+        "role": "neutral",
+        "displayName": "Chalk",
+        "canonical": "#f4f7f4",
+        "tonalRamp": ["#10251f", "#2c3d36", "#4b5b53", "#6f7d75", "#94a099", "#b4beb8", "#d2dad5", "#f4f7f4"]
+      },
+      "panel-white": {
+        "role": "neutral",
+        "displayName": "Panel White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#c7d1cb", "#dbe3de", "#e9efeb", "#f1f5f2", "#f6f9f7", "#fafcfb", "#fdfefd", "#ffffff"]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#e4ebe6",
+        "tonalRamp": ["#8aa196", "#a9bcaf", "#c2d1c6", "#d3dfd8", "#e4ebe6", "#eaf0ec", "#f1f5f2", "#f9fcf8"]
+      },
+      "mist": {
+        "role": "neutral",
+        "displayName": "Mist",
+        "canonical": "#f3f6f4",
+        "tonalRamp": ["#7f8f87", "#9daaa3", "#bcc6c0", "#d5dcd8", "#e6ebe8", "#eef2f0", "#f3f6f4", "#fafcfa"]
+      },
+      "input-frost": {
+        "role": "neutral",
+        "displayName": "Input Frost",
+        "canonical": "#fafcfb",
+        "tonalRamp": ["#87968e", "#a5b2ab", "#c4cdc7", "#dbe3de", "#ebf0ed", "#f4f8f6", "#fafcfb", "#ffffff"]
+      },
+      "moss": {
+        "role": "neutral",
+        "displayName": "Moss",
+        "canonical": "#87968e",
+        "tonalRamp": ["#2b3a34", "#45534c", "#62766d", "#718078", "#87968e", "#a0aaa5", "#b2bcb7", "#cedad2"]
+      },
+      "sage": {
+        "role": "neutral",
+        "displayName": "Sage",
+        "canonical": "#a0aaa5",
+        "tonalRamp": ["#3a443f", "#556059", "#737f78", "#8b978f", "#a0aaa5", "#b6bfba", "#cbd3cf", "#e4ebe6"]
+      },
+      "fog": {
+        "role": "neutral",
+        "displayName": "Fog",
+        "canonical": "#b2bcb7",
+        "tonalRamp": ["#4a5350", "#65706a", "#818d87", "#9ba69f", "#b2bcb7", "#c5cdc9", "#d8dedb", "#ecefef"]
+      },
+      "slate-green": {
+        "role": "neutral",
+        "displayName": "Slate Green",
+        "canonical": "#718078",
+        "tonalRamp": ["#22302a", "#384a42", "#4f6157", "#62766d", "#718078", "#87968e", "#a0aaa5", "#cedad2"]
+      },
+      "fern": {
+        "role": "neutral",
+        "displayName": "Fern",
+        "canonical": "#62766d",
+        "tonalRamp": ["#1c2a25", "#33453d", "#4a5e56", "#586b62", "#62766d", "#7d9086", "#9cab9f", "#c9d4cc"]
+      },
+      "pine-ink": {
+        "role": "neutral",
+        "displayName": "Pine Ink",
+        "canonical": "#10251f",
+        "tonalRamp": ["#071511", "#10251f", "#1f3a31", "#315b4b", "#4d7466", "#71907f", "#9db3a8", "#cedad2"]
+      },
+      "success-tint": {
+        "role": "neutral",
+        "displayName": "Success Tint",
+        "canonical": "#e4f5ea",
+        "tonalRamp": ["#1d5136", "#2c7350", "#409a6d", "#5fbb8c", "#88cfae", "#b0e0c8", "#cfeede", "#e4f5ea"]
+      },
+      "success-strong": {
+        "role": "neutral",
+        "displayName": "Success Strong",
+        "canonical": "#3b936d",
+        "tonalRamp": ["#0d3323", "#154c36", "#1f6b4d", "#2c8260", "#3b936d", "#5cad86", "#8ac7a8", "#c2e4d2"]
+      },
+      "warning-tint": {
+        "role": "neutral",
+        "displayName": "Warning Tint",
+        "canonical": "#fff1d3",
+        "tonalRamp": ["#6b4a0e", "#966a17", "#c08c22", "#daa93f", "#f0c46a", "#f7d795", "#fce5b8", "#fff1d3"]
+      },
+      "warning-strong": {
+        "role": "neutral",
+        "displayName": "Warning Strong",
+        "canonical": "#c58d25",
+        "tonalRamp": ["#4a340b", "#704f12", "#986c1a", "#b17e1f", "#c58d25", "#d8a748", "#e7c37d", "#f6e2b8"]
+      },
+      "error-tint": {
+        "role": "neutral",
+        "displayName": "Error Tint",
+        "canonical": "#fbe6e1",
+        "tonalRamp": ["#66241b", "#8f3527", "#b54a37", "#cf6a56", "#e08d7b", "#eeb2a6", "#f6d2ca", "#fbe6e1"]
+      },
+      "error-strong": {
+        "role": "neutral",
+        "displayName": "Error Strong",
+        "canonical": "#d86456",
+        "tonalRamp": ["#5c1d15", "#8a2e22", "#b3422f", "#cd5341", "#d86456", "#e5867a", "#efaaa1", "#f9d6d1"]
+      },
+      "info-tint": {
+        "role": "neutral",
+        "displayName": "Info Tint",
+        "canonical": "#e8eef8",
+        "tonalRamp": ["#24406f", "#33598f", "#4674b0", "#5f8cc9", "#87a9db", "#aec5e9", "#cfdaf3", "#e8eef8"]
+      },
+      "info-strong": {
+        "role": "neutral",
+        "displayName": "Info Strong",
+        "canonical": "#4f7cc0",
+        "tonalRamp": ["#223b66", "#2f5185", "#3d67a6", "#4f7cc0", "#6e95dc", "#8fade6", "#b0c6ef", "#dbe6f8"]
+      },
+      "rail-foreground": {
+        "role": "neutral",
+        "displayName": "Rail Foreground",
+        "canonical": "#e7f1eb",
+        "tonalRamp": ["#10251f", "#2a4239", "#456256", "#668178", "#8a9f97", "#b0c0b9", "#cdd9d3", "#e7f1eb"]
+      },
+      "rail-muted": {
+        "role": "neutral",
+        "displayName": "Rail Muted",
+        "canonical": "#7d9b90",
+        "tonalRamp": ["#1f3a31", "#315b4b", "#4d7466", "#668a7c", "#7d9b90", "#98b2a8", "#b4c8c0", "#d3e0da"]
+      },
+      "rail-line": {
+        "role": "neutral",
+        "displayName": "Rail Line",
+        "canonical": "#29453c",
+        "tonalRamp": ["#0d1c17", "#152b24", "#1f3a31", "#29453c", "#3a5c50", "#547a6c", "#789689", "#a6bdb3"]
+      },
+      "rail-hover": {
+        "role": "neutral",
+        "displayName": "Rail Hover",
+        "canonical": "#1c3c32",
+        "tonalRamp": ["#0a1a14", "#12261e", "#163128", "#1c3c32", "#2c5a4b", "#4a8070", "#7aa596", "#b5cec5"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "KPI values and hero figures; the numbers that carry the reading." },
+      "headline": { "displayName": "Headline", "purpose": "The topbar greeting only." },
+      "title": { "displayName": "Title", "purpose": "Every panel heading." },
+      "body": { "displayName": "Body", "purpose": "Running UI text and controls." },
+      "label": { "displayName": "Eyebrow / Label", "purpose": "DM Mono uppercase kickers above panel titles, plus mono captions." }
+    },
+    "shadows": [
+      { "name": "card", "value": "0 14px 34px rgba(35, 73, 58, 0.06)", "purpose": "All panels: a low-opacity, wide ambient lift off the green canvas." },
+      { "name": "toast", "value": "0 8px 30px #16362a44", "purpose": "The floating toast notification only." }
+    ],
+    "motion": [
+      { "name": "state-transition", "value": "200ms cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Nav and button background/color changes on hover." },
+      { "name": "marker-pop", "value": "transform 200ms ease", "purpose": "Campus-map bin markers scaling to 1.17 on hover/focus." },
+      { "name": "toast-slide", "value": "300ms cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Toast translating up and fading in/out." }
+    ],
+    "breakpoints": [
+      { "name": "tablet", "value": "1100px" },
+      { "name": "phone", "value": "700px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Panel (surface-panel)",
+      "kind": "card",
+      "refersTo": "surface-panel",
+      "description": "The white paper panel every dashboard region sits in — 10px radius, hairline border, one ambient shadow, opened by a mono eyebrow and a Space Grotesk title.",
+      "html": "<div class=\"ds-panel\"><p class=\"ds-eyebrow\">REAL-TIME SENSOR NETWORK</p><h3 class=\"ds-panel-title\">Live campus map</h3></div>",
+      "css": ".ds-panel { background: var(--color-card, #ffffff); color: var(--color-foreground, #10251f); border: 1px solid var(--color-border, #e4ebe6); border-radius: 10px; padding: 20px; box-shadow: 0 14px 34px rgba(35, 73, 58, 0.06); } .ds-eyebrow { margin: 0 0 7px; font-family: var(--font-dm-mono, monospace); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-eyebrow, #87968e); } .ds-panel-title { margin: 0; font-family: var(--font-space-grotesk, sans-serif); font-size: 19px; font-weight: 600; letter-spacing: -0.035em; color: var(--color-foreground, #10251f); }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The Export report action — the one dark, weighty button; pine-ink fill with a pale-green label and an accented arrow.",
+      "html": "<button class=\"ds-btn-primary\">Export report <span class=\"ds-btn-arrow\">↗</span></button>",
+      "css": ".ds-btn-primary { cursor: pointer; border: 0; background: var(--color-foreground, #10251f); color: var(--color-export-foreground, #ecf6ee); font-family: var(--font-dm-sans, sans-serif); font-size: 12px; padding: 10px 14px; border-radius: 6px; transition: background 200ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background: #1f3a31; } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-ring, #46ab83); outline-offset: 2px; } .ds-btn-arrow { padding-left: 8px; color: var(--color-export-accent, #96d4b5); }"
+    },
+    {
+      "name": "Sync Button",
+      "kind": "button",
+      "refersTo": "button-sync",
+      "description": "The offline-sync flush action — solid green fill, white label; swaps to a pending label while syncing.",
+      "html": "<button class=\"ds-btn-sync\">Sync cached data <span aria-hidden=\"true\">→</span></button>",
+      "css": ".ds-btn-sync { cursor: pointer; border: 0; background: var(--color-sync-button, #2b7e5f); color: #ffffff; font-family: var(--font-dm-sans, sans-serif); font-size: 11px; padding: 10px 13px; border-radius: 4px; transition: background 200ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-sync:hover { background: var(--color-sync-button-hover, #1d654a); } .ds-btn-sync:focus-visible { outline: 2px solid var(--color-ring, #46ab83); outline-offset: 2px; } .ds-btn-sync[disabled] { opacity: 0.72; cursor: progress; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Full-width outline action in the hardware panel — white fill, green label, pale green border.",
+      "html": "<button class=\"ds-btn-outline\">View all 26 devices <span aria-hidden=\"true\">→</span></button>",
+      "css": ".ds-btn-outline { width: 100%; cursor: pointer; background: var(--color-card, #ffffff); color: var(--color-primary-hover, #397a5d); border: 1px solid var(--color-outline-border, #cfe2d7); border-radius: 4px; padding: 9px; font-family: var(--font-dm-sans, sans-serif); font-size: 11px; transition: background 200ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-outline:hover { background: var(--color-primary-tint, #e2f4e8); } .ds-btn-outline:focus-visible { outline: 2px solid var(--color-ring, #46ab83); outline-offset: 2px; }"
+    },
+    {
+      "name": "Live Status Chip",
+      "kind": "chip",
+      "refersTo": "chip-live",
+      "description": "The only pill in the system — seedling tint with a live-green dot and a soft halo.",
+      "html": "<span class=\"ds-chip-live\"><i class=\"ds-chip-dot\"></i>Live operations</span>",
+      "css": ".ds-chip-live { display: inline-flex; align-items: center; gap: 7px; background: var(--color-primary-tint, #e2f4e8); color: var(--color-pill-foreground, #39765c); border: 1px solid var(--color-pill-border, #cae9d7); border-radius: 20px; padding: 8px 11px; font-family: var(--font-dm-mono, monospace); font-size: 10px; letter-spacing: 0.06em; } .ds-chip-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--color-live, #48b37c); box-shadow: 0 0 0 3px var(--color-live-halo, #c5ecd7); }"
+    },
+    {
+      "name": "Trend Badge",
+      "kind": "chip",
+      "refersTo": "chip-trend-up",
+      "description": "The mono percentage chip in KPI footers and the points chart; up = green tint, neutral = gray tint.",
+      "html": "<span class=\"ds-trend-up\">↑ 6.2%</span> <span class=\"ds-trend-neutral\">92.3%</span>",
+      "css": ".ds-trend-up, .ds-trend-neutral { display: inline-block; border-radius: 4px; padding: 3px 5px; font-family: var(--font-dm-mono, monospace); font-size: 10px; font-weight: 600; } .ds-trend-up { background: var(--color-success-bg, #e4f5ea); color: var(--color-success-fg, #3b936d); } .ds-trend-neutral { background: var(--color-trend-neutral-bg, #edf1ef); color: var(--color-trend-neutral-fg, #6a8177); }"
+    },
+    {
+      "name": "Period Select",
+      "kind": "input",
+      "refersTo": "select-period",
+      "description": "The chart period control — a themed native select on Input Frost with a hairline border.",
+      "html": "<select class=\"ds-select\"><option>Last 30 days</option><option>Last 7 days</option><option>This year</option></select>",
+      "css": ".ds-select { background: var(--color-input, #fafcfb); color: var(--color-muted-foreground, #718078); border: 1px solid var(--color-border, #e4ebe6); border-radius: 4px; padding: 7px; font-family: var(--font-dm-sans, sans-serif); font-size: 10px; } .ds-select:focus-visible { outline: 2px solid var(--color-ring, #46ab83); outline-offset: 1px; }"
+    },
+    {
+      "name": "Bottom Dock Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "The foot dock's navigation slots on the dark pine base; the active slot carries an inset green accent stripe on its top edge. The stripe is a single shared element that slides between slots on a section change (~250ms, no overshoot; instant under prefers-reduced-motion). The only navigation at every width.",
+      "html": "<nav class=\"ds-dock\"><a class=\"ds-dock-item ds-dock-item--active\" href=\"#overview\" aria-current=\"true\"><span class=\"ds-dock-icon\">⌂</span>Overview</a><a class=\"ds-dock-item\" href=\"#campus-map\"><span class=\"ds-dock-icon\">⌖</span>Map</a><a class=\"ds-dock-item\" href=\"#hardware\"><span class=\"ds-dock-icon\">◉</span>Hardware</a><a class=\"ds-dock-item\" href=\"#analytics\"><span class=\"ds-dock-icon\">◒</span>Analytics</a></nav>",
+      "css": ".ds-dock { display: flex; align-items: stretch; gap: 4px; background: var(--color-sidebar, #10251f); border-top: 1px solid var(--color-sidebar-border, #29453c); padding: 7px 12px; } .ds-dock-item { display: flex; flex: 1; min-height: 48px; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 8px; padding: 6px 8px; font-family: var(--font-dm-sans, sans-serif); font-size: 11px; color: var(--color-sidebar-nav, #93aaa1); text-decoration: none; transition: background 200ms, color 200ms; } .ds-dock-item:hover { background: var(--color-sidebar-hover, #1c3c32); color: var(--color-sidebar-hover-foreground, #effaf3); } .ds-dock-item--active { background: var(--color-sidebar-hover, #1c3c32); color: var(--color-sidebar-hover-foreground, #effaf3); box-shadow: inset 0 3px var(--color-sidebar-accent, #7ed5ad); } .ds-dock-icon { font-size: 18px; line-height: 1; color: var(--color-sidebar-icon, #a8beb5); }"
+    },
+    {
+      "name": "Bin Marker (signature)",
+      "kind": "custom",
+      "refersTo": "bin-marker",
+      "description": "The campus-map's clickable bin marker — a 31px circle with a 3px white ring, colored by fill state, scaling on hover.",
+      "html": "<button class=\"ds-bin-marker\" aria-label=\"Bin 01 North Gate, 18 percent full\">01</button>\n<button class=\"ds-bin-marker ds-bin-marker--warning\" aria-label=\"Bin 02 Science Hall, 54 percent full\">02</button>\n<button class=\"ds-bin-marker ds-bin-marker--critical\" aria-label=\"Bin 03 Student Union, 87 percent full\">03</button>",
+      "css": ".ds-bin-marker { width: 31px; height: 31px; border-radius: 50%; border: 3px solid #ffffff; color: #ffffff; background: var(--color-primary-500, #46ab83); font: 600 9px var(--font-dm-mono, monospace); cursor: pointer; box-shadow: 0 3px 9px rgba(102, 136, 115, 0.5); transition: transform 200ms ease; } .ds-bin-marker:hover, .ds-bin-marker:focus-visible { transform: scale(1.17); outline: 3px solid rgba(255, 255, 255, 0.6); } .ds-bin-marker--warning { background: var(--color-warning-500, #eab64f); } .ds-bin-marker--critical { background: var(--color-error-500, #e0695c); }"
+    },
+    {
+      "name": "Toast",
+      "kind": "custom",
+      "refersTo": "toast",
+      "description": "The transient action confirmation — deep pine fill, pale text, slides up 300ms and fades.",
+      "html": "<div class=\"ds-toast\" role=\"status\">Sync complete · 4 events added 445 points</div>",
+      "css": ".ds-toast { display: inline-block; background: var(--color-toast, #16362a); color: var(--color-toast-foreground, #eaf7ef); border-radius: 6px; padding: 12px 16px; font-family: var(--font-dm-sans, sans-serif); font-size: 12px; box-shadow: 0 8px 30px #16362a44; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Field Logbook",
+    "overview": "This is an operator's logbook, not a control-room wall. Every surface behaves like a page in a durable field record: ruled by hairline borders, lit softly, and written in a tight, engineered hand. The dashboard's job is to be readable while walking — a phone in one hand during a campus round — so it favors legibility at arm's length over density and ornament. Panels are calm and evenly weighted; nothing shouts, and nothing is disguised. The honesty of the offline-cache → sync → ledger loop is treated as a design value: state is stated plainly in text and color, never dressed up as live. The palette carries the logbook's two moods. A single botanical green family owns the product's own surfaces and its primary, \"everything is fine\" state, while warm amber, blue, and violet are spent sparingly as accents that each mean something specific — amber for waste volume, blue for information and engagement, violet for the active-bin count. The canvas is a pale green-tinted paper rather than clinical white, and the dark pine dock along the foot of the page reads like the logbook's bound spine. The result is deliberately flat and tactile: solid fills, crisp 1px borders, small radii, and quick 200–300ms transitions. It feels confident and operational — closer to a well-made field instrument than to a marketing page.",
+    "keyCharacteristics": [
+      "Pale green-tinted canvas; white paper panels separated by hairline borders.",
+      "One botanical green as the structural brand color; amber / blue / violet as meaning-bearing accents.",
+      "Space Grotesk headings set tight with negative tracking; DM Mono uppercase kickers labeling every block.",
+      "A single ambient card shadow — depth never escalates.",
+      "Small radii (4–10px); only the live status chip is a pill.",
+      "Phone-first: the ≤700px stacked layout is the primary working state, not a fallback.",
+      "One navigation, at every width: a dark pine dock pinned to the foot of the page."
+    ],
+    "rules": [
+      { "name": "The Token-Only Rule", "body": "Color enters the UI through a named token in `src/styles/theme.css` — never a literal hex written into a component. Adding color means adding a token.", "section": "colors" },
+      { "name": "The Green-Owns-Structure Rule", "body": "The canopy-green family marks the product's own chrome and its primary/healthy state. Amber, blue, and violet are reserved for secondary meaning (waste, information/engagement, active bins) and stay rare.", "section": "colors" },
+      { "name": "The Negative-Tracking Rule", "body": "Space Grotesk is always set tight (-0.035 to -0.04em). Default tracking reads as un-engineered and is off-system.", "section": "typography" },
+      { "name": "The Kicker Rule", "body": "Every panel opens with a DM Mono uppercase eyebrow (10px / 0.12em). It is the label for the block, not decoration; omit it and the logbook loses its indexing.", "section": "typography" },
+      { "name": "The One-Shadow Rule", "body": "There is one ambient shadow for surfaces and one for the toast. No element gains a second shadow or lifts on hover; separation is the border's job.", "section": "elevation" },
+      { "name": "The Small-Radius Rule", "body": "Corners stay between 4px and 10px. Do not round panels into soft cards or pill the UI — the 20px pill is reserved for the live-status chip alone.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do route every color through a token in src/styles/theme.css; components consume semantic tokens, never raw hex.",
+      "Do keep panels at 10px radius with the single ambient shadow and a 1px Hairline border.",
+      "Do set headings in Space Grotesk 600 with negative tracking (-0.035 to -0.04em) and open each panel with a DM Mono uppercase kicker (10px / 0.12em).",
+      "Do treat the ≤700px stacked layout as the primary working state and verify it first.",
+      "Do keep the foot dock the only navigation at every width, and keep every slot's target at least 44×44px with real env(safe-area-inset-bottom) clearance.",
+      "Do color state semantically and consistently: canopy green = healthy/primary, amber = attention, error red = critical, sky blue = information, iris violet = active bins.",
+      "Do keep body line-height `normal` at 14px; do not reintroduce Tailwind's paired line-height utilities, which shift the layout."
+    ],
+    "donts": [
+      "Don't add gradients, glows, glassmorphism, or saturated \"tech SaaS\" chrome — the system is flat, botanical, and operational.",
+      "Don't introduce a second surface shadow or lift cards/buttons on hover.",
+      "Don't re-introduce a left rail, a horizontal scroll nav, or any second navigation surface beside the dock.",
+      "Don't hardcode a hex value in a component or extend the palette without a token.",
+      "Don't dress cached, pending, or simulated data up as live.",
+      "Don't round panels into soft cards or pill anything except the live-status chip."
+    ]
+  }
+}
