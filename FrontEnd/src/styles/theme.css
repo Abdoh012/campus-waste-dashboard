@@ -1,0 +1,216 @@
+/* ============================================================================
+   THEME.CSS — design tokens for the Think Outside The Box dashboard.
+
+   Implements the project's CSS architecture directive:
+     1. Raw color scales      — never consumed directly by components (R1)
+     2. Fonts                 — aliased to variables, not literal families (R10)
+     3. Semantic aliases      — what components actually consume (R2)
+
+   There is no dark theme in this product, so no dark selector is defined; the
+   aliases below are still declared as real custom properties (plain @theme,
+   not @theme inline) so a dark layer could be added later without a rewrite.
+
+   Color provenance:
+     * `exact`     — value taken directly from the original stylesheet.
+     * `generated` — interpolated to complete a ramp around the exact anchors.
+
+   Notes on deliberate, minimal consolidation:
+     * The original design used ~20 near-identical green-gray "subtle text"
+       shades (e.g. #86968d, #87968e, #88968f, #89978f). These now resolve to
+       one ramp step each (neutral-500/600/700). The shifts are within a few
+       RGB units and are not visually perceptible.
+     * The eyebrow color (#86a398) snapped to neutral-600 (#87968e), and the
+       notification dot (#e46e5c) snapped to the brand error color (#e0695c).
+     * Every actual brand/structural anchor (green #46ab83, green-dark #27765b,
+       orange #ef9f4c, blue #6e95dc, purple #a180c7, canvas #f4f7f4,
+       panel #ffffff, line #e4ebe6, ink #10251f) is preserved byte-for-byte.
+============================================================================ */
+
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   1. RAW COLOR SCALES — generation only, never consumed directly by
+      components (R1). Every step is marked exact or generated (R13).
+------------------------------------------------------------------- */
+@theme {
+  /* --- PRIMARY — the brand green. Fixed; the product has no dark theme (R3). --- */
+  --color-primary-50: #ecf7f1; /* generated */
+  --color-primary-100: #d2ecdf; /* generated */
+  --color-primary-200: #aadac2; /* generated */
+  --color-primary-300: #7cc7a3; /* generated */
+  --color-primary-400: #58b28a; /* generated */
+  --color-primary-500: #46ab83; /* exact — original --green */
+  --color-primary-600: #37906d; /* generated */
+  --color-primary-700: #27765b; /* exact — original --green-dark */
+  --color-primary-800: #1f5a47; /* generated */
+  --color-primary-900: #163f32; /* generated */
+  --color-primary-950: #0a241c; /* generated */
+
+  /* --- SECONDARY — warm accent used by the waste-sorted metrics. --- */
+  --color-secondary-50: #fdf5ea; /* generated */
+  --color-secondary-100: #fce7cf; /* generated */
+  --color-secondary-200: #f8d0a3; /* generated */
+  --color-secondary-300: #f4ba78; /* generated */
+  --color-secondary-400: #f1ab5e; /* generated */
+  --color-secondary-500: #ef9f4c; /* exact — original --orange */
+  --color-secondary-600: #dd8830; /* generated */
+  --color-secondary-700: #b96c22; /* generated */
+  --color-secondary-800: #91531b; /* generated */
+  --color-secondary-900: #6b3d14; /* generated */
+  --color-secondary-950: #3c220b; /* generated */
+
+  /* --- ACCENT — decorative violet used by the active-bins metric. --- */
+  --color-accent-50: #f3eef9; /* generated */
+  --color-accent-500: #a180c7; /* exact — original --purple */
+  --color-accent-700: #7c5aa3; /* generated */
+
+  /* --- NEUTRAL — the structural green-gray scale used across the UI. --- */
+  --color-neutral-50: #f9fcf8; /* exact — original road/near-white surface */
+  --color-neutral-100: #f4f7f4; /* exact — original --canvas */
+  --color-neutral-200: #e4ebe6; /* exact — original --line */
+  --color-neutral-300: #cedad2; /* generated */
+  --color-neutral-400: #b2bcb7; /* exact — original alert-arrow shade */
+  --color-neutral-500: #a0aaa5; /* exact — original faint text shade */
+  --color-neutral-600: #87968e; /* exact — original label text shade */
+  --color-neutral-700: #718078; /* exact — original --muted */
+  --color-neutral-800: #62766d; /* exact — original zoom-button shade */
+  --color-neutral-900: #10251f; /* exact — original --ink */
+  --color-neutral-950: #071511; /* generated */
+
+  /* --- SUCCESS / WARNING / ERROR / INFO — utility states only, three steps
+     each (R6). Values are exact from the original design. --- */
+  --color-success-50: #e4f5ea; /* exact */
+  --color-success-500: #4dbb84; /* exact */
+  --color-success-700: #3b936d; /* exact */
+
+  --color-warning-50: #fff1d3; /* exact */
+  --color-warning-500: #eab64f; /* exact */
+  --color-warning-700: #c58d25; /* exact */
+
+  --color-error-50: #fbe6e1; /* exact */
+  --color-error-500: #e0695c; /* exact */
+  --color-error-700: #d86456; /* exact */
+
+  --color-info-50: #e8eef8; /* exact */
+  --color-info-500: #6e95dc; /* exact — original --blue */
+  --color-info-700: #4f7cc0; /* generated */
+}
+
+/* ------------------------------------------------------------------
+   2. FONTS — one alias per role, pointing at variables loaded by the
+      Google Fonts <link> in index.html (R10: no literal family
+      strings inside the token layer; the literals live in :root).
+------------------------------------------------------------------- */
+@theme inline {
+  --font-sans: var(--font-dm-sans);
+  --font-heading: var(--font-space-grotesk);
+  --font-mono: var(--font-dm-mono);
+}
+
+/* ------------------------------------------------------------------
+   3. SEMANTIC ALIASES — the layer components build with. Declared as
+      real custom properties (plain @theme, R4) so a dark theme could
+      override them by selector without touching any component.
+------------------------------------------------------------------- */
+@theme {
+  /* Structural surfaces */
+  --color-background: var(--color-neutral-100);
+  --color-foreground: var(--color-neutral-900);
+  --color-card: #ffffff; /* exact — original --panel */
+  --color-card-foreground: var(--color-neutral-900);
+  --color-border: var(--color-neutral-200);
+  --color-input: #fafcfb; /* exact */
+  --color-ring: var(--color-primary-500);
+  --color-muted: #f3f6f4; /* exact */
+  --color-muted-foreground: var(--color-neutral-700);
+
+  /* Text roles */
+  --color-eyebrow: var(--color-neutral-600);
+  --color-label: var(--color-neutral-600);
+  --color-label-muted: var(--color-neutral-500);
+  --color-label-subtle: var(--color-neutral-400);
+  --color-label-strong: var(--color-neutral-800);
+
+  /* Brand */
+  --color-primary: var(--color-primary-500);
+  --color-primary-foreground: #ffffff;
+  --color-primary-tint: #e2f4e8; /* exact — pale green badge surface */
+  --color-primary-tint-border: #d1ebdc; /* exact — active map-control border */
+  --color-outline-border: #cfe2d7; /* exact — outline button border */
+  --color-primary-text: var(--color-primary-700);
+  --color-primary-hover: #397a5d; /* exact — interactive green text */
+  --color-secondary: var(--color-secondary-500);
+  --color-secondary-foreground: #ffffff;
+  --color-accent: var(--color-accent-500);
+  --color-accent-foreground: #ffffff;
+  --color-info: var(--color-info-500);
+  --color-info-foreground: #ffffff;
+  --color-destructive: var(--color-error-500);
+  --color-destructive-foreground: #ffffff;
+
+  /* Utility states */
+  --color-success-bg: var(--color-success-50);
+  --color-success-fg: var(--color-success-700);
+  --color-warning-bg: var(--color-warning-50);
+  --color-warning-fg: var(--color-warning-700);
+  --color-error-bg: var(--color-error-50);
+  --color-error-fg: var(--color-error-700);
+  --color-info-bg: var(--color-info-50);
+  --color-info-fg: var(--color-info-700);
+
+  /* Sidebar — a fixed dark rail with its own contrast set. Exact values. */
+  --color-sidebar: #10251f;
+  --color-sidebar-foreground: #e7f1eb;
+  --color-sidebar-muted: #7d9b90;
+  --color-sidebar-border: #29453c;
+  --color-sidebar-hover: #1c3c32;
+  --color-sidebar-hover-foreground: #effaf3;
+  --color-sidebar-nav: #93aaa1;
+  --color-sidebar-icon: #a8beb5;
+  --color-sidebar-eyebrow: #83ad9c;
+  --color-sidebar-brand: #a3dec1;
+  --color-sidebar-online: #6bd69c;
+  --color-sidebar-online-ring: #254e3e;
+  --color-sidebar-avatar: #315b4b;
+  --color-sidebar-avatar-foreground: #d8f0e2;
+  --color-sidebar-chevron: #77968b;
+  --color-sidebar-accent: #7ed5ad;
+
+  /* Component accents with no generic semantic meaning */
+  --color-sun: #e6a54d; /* exact */
+  --color-pill-foreground: #39765c; /* exact */
+  --color-pill-border: #cae9d7; /* exact */
+  --color-live: #48b37c; /* exact — live pulse dot */
+  --color-live-halo: #c5ecd7; /* exact — live pulse ring */
+  --color-icon-muted: #456459; /* exact */
+  --color-export-foreground: #ecf6ee; /* exact */
+  --color-export-accent: #96d4b5; /* exact */
+  --color-trend-neutral-bg: #edf1ef; /* exact */
+  --color-trend-neutral-fg: #6a8177; /* exact */
+  --color-toast: #16362a; /* exact */
+  --color-toast-foreground: #eaf7ef; /* exact */
+
+  /* Metric decorations */
+  --color-spark: #bee8d0; /* exact — diversion-rate sparkline */
+  --color-mini-bar: #f8d6ad; /* exact — waste-sorted mini bars */
+
+  /* Chart internals */
+  --color-axis: #a3ada7; /* exact */
+  --color-grid: #edf1ee; /* exact */
+  --color-chart-line: #4bac83; /* exact */
+  --color-chart-area: #58b798; /* exact — line-chart gradient */
+  --color-bar: #c7e9d5; /* exact */
+  --color-bar-active: #54af84; /* exact */
+  --color-bar-grid: #e8eeea; /* exact */
+  --color-bar-border: #e6ece8; /* exact */
+
+  /* Offline sync banner */
+  --color-sync-border: #b9d7c5; /* exact */
+  --color-sync-bg: #edf8f0; /* exact */
+  --color-sync-button: #2b7e5f; /* exact */
+  --color-sync-button-hover: #1d654a; /* exact */
+
+  /* Elevation */
+  --shadow-card: 0 14px 34px rgba(35, 73, 58, 0.06); /* exact — original --shadow */
+  --shadow-toast: 0 8px 30px #16362a44; /* exact — original toast shadow */
+}

@@ -1,0 +1,308 @@
+/* ============================================================================
+   CAMPUS-MAP.CSS — the stylized campus illustration.
+
+   This is the one place custom CSS is justified: the map is an absolutely
+   positioned, transformed illustration with a patterned background that
+   cannot be expressed with Tailwind utilities without dozens of arbitrary
+   values. All its colors are exposed as scoped custom properties below so the
+   illustration reads like a small token set rather than scattered hex.
+============================================================================ */
+
+.campus-map {
+  /* Illustration palette (exact values from the original stylesheet) */
+  --map-surface: #e6f0e8;
+  --map-road: var(--color-neutral-50);
+  --map-road-edge: #dae7de;
+  --map-lawn: #d5e9d9;
+  --map-lawn-edge: #c9dfce;
+  --map-building: #fafcf8;
+  --map-building-edge: #bed5c4;
+  --map-building-text: #73917e;
+  --map-label: #7da18a;
+  --map-creek: #8ab2ac;
+  --map-marker-shadow: #66887380;
+  --map-marker-outline: #ffffff99;
+  --map-tooltip: #17372c;
+  --map-tooltip-muted: #9fc4b2;
+  --map-tooltip-accent: #f3bf61;
+  --map-tooltip-faint: #789a8b;
+  --map-tooltip-shadow: #345b4380;
+
+  height: 357px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 7px;
+  background: var(--map-surface);
+  background-image:
+    linear-gradient(
+      30deg,
+      rgba(255, 255, 255, 0.18) 12%,
+      transparent 12.5%,
+      transparent 87%,
+      rgba(255, 255, 255, 0.18) 87.5%,
+      rgba(255, 255, 255, 0.18)
+    ),
+    linear-gradient(
+      150deg,
+      rgba(255, 255, 255, 0.15) 12%,
+      transparent 12.5%,
+      transparent 87%,
+      rgba(255, 255, 255, 0.15) 87.5%,
+      rgba(255, 255, 255, 0.15)
+    );
+  background-size: 34px 59px;
+}
+
+.map-road {
+  position: absolute;
+  background: var(--map-road);
+  box-shadow: 0 0 0 1px var(--map-road-edge);
+}
+
+.road-a {
+  height: 20px;
+  width: 110%;
+  transform: rotate(-20deg);
+  top: 52%;
+  left: -3%;
+}
+
+.road-b {
+  height: 17px;
+  width: 120%;
+  transform: rotate(36deg);
+  top: 16%;
+  left: -5%;
+}
+
+.road-c {
+  height: 11px;
+  width: 120%;
+  transform: rotate(87deg);
+  top: 50%;
+  left: -7%;
+}
+
+.map-lawn {
+  position: absolute;
+  background: var(--map-lawn);
+  border: 1px solid var(--map-lawn-edge);
+  border-radius: 48%;
+}
+
+.lawn-a {
+  height: 100px;
+  width: 180px;
+  left: 34%;
+  top: 42%;
+  transform: rotate(-10deg);
+}
+
+.lawn-b {
+  height: 65px;
+  width: 120px;
+  right: 4%;
+  top: 5%;
+  transform: rotate(16deg);
+}
+
+.building {
+  position: absolute;
+  background: var(--map-building);
+  border: 2px solid var(--map-building-edge);
+  box-shadow: 4px 5px 0 rgba(105, 149, 119, 0.12);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--map-building-text);
+  font: 8px 'DM Mono', monospace;
+  letter-spacing: 0.1em;
+}
+
+.building-library {
+  width: 130px;
+  height: 67px;
+  left: 13%;
+  top: 17%;
+  transform: rotate(-5deg);
+}
+
+.building-science {
+  width: 111px;
+  height: 83px;
+  left: 44%;
+  top: 12%;
+  transform: rotate(9deg);
+}
+
+.building-student {
+  width: 122px;
+  height: 62px;
+  right: 10%;
+  top: 28%;
+  transform: rotate(6deg);
+}
+
+.building-arts {
+  width: 92px;
+  height: 68px;
+  left: 13%;
+  bottom: 11%;
+  transform: rotate(7deg);
+}
+
+.building-gym {
+  width: 102px;
+  height: 57px;
+  right: 27%;
+  bottom: 9%;
+  transform: rotate(-7deg);
+}
+
+.building-admin {
+  width: 70px;
+  height: 43px;
+  left: 49%;
+  bottom: 29%;
+  transform: rotate(-3deg);
+}
+
+.map-label {
+  position: absolute;
+  font: 9px 'DM Mono', monospace;
+  letter-spacing: 0.1em;
+  color: var(--map-label);
+}
+
+.label-quad {
+  left: 41%;
+  top: 62%;
+}
+
+.label-creek {
+  right: 2%;
+  bottom: 5%;
+  transform: rotate(-21deg);
+  color: var(--map-creek);
+}
+
+.bin-marker {
+  position: absolute;
+  border: 3px solid #ffffff;
+  width: 31px;
+  height: 31px;
+  border-radius: 50%;
+  color: #ffffff;
+  font: 600 9px 'DM Mono', monospace;
+  cursor: pointer;
+  box-shadow: 0 3px 9px var(--map-marker-shadow);
+  z-index: 2;
+  transition: transform 0.2s;
+}
+
+.bin-marker:hover,
+.bin-marker:focus {
+  transform: scale(1.17);
+  outline: 3px solid var(--map-marker-outline);
+}
+
+.bin-green {
+  background: var(--color-primary-500);
+}
+
+.bin-yellow {
+  background: var(--color-warning-500);
+}
+
+.bin-red {
+  background: var(--color-error-500);
+}
+
+.marker-1 {
+  left: 7%;
+  top: 53%;
+}
+
+.marker-2 {
+  left: 39%;
+  top: 25%;
+}
+
+.marker-3 {
+  right: 17%;
+  top: 48%;
+}
+
+.marker-4 {
+  left: 8%;
+  bottom: 24%;
+}
+
+.marker-5 {
+  right: 35%;
+  bottom: 14%;
+}
+
+.marker-6 {
+  left: 28%;
+  top: 28%;
+}
+
+.map-tooltip {
+  position: absolute;
+  right: 11px;
+  bottom: 11px;
+  background: var(--map-tooltip);
+  color: #ffffff;
+  padding: 11px 13px;
+  border-radius: 6px;
+  box-shadow: 0 5px 15px var(--map-tooltip-shadow);
+  z-index: 3;
+  min-width: 174px;
+  display: none;
+}
+
+.map-tooltip.show {
+  display: block;
+}
+
+.map-tooltip strong {
+  font-size: 11px;
+  display: block;
+}
+
+.map-tooltip span {
+  font-size: 10px;
+  color: var(--map-tooltip-muted);
+  display: block;
+  margin-top: 5px;
+}
+
+.map-tooltip b {
+  color: var(--map-tooltip-accent);
+}
+
+.map-tooltip small {
+  font-size: 9px;
+  color: var(--map-tooltip-faint);
+  display: block;
+  margin-top: 7px;
+}
+
+@media (max-width: 700px) {
+  .campus-map {
+    height: 300px;
+  }
+
+  .building-library {
+    left: 7%;
+  }
+
+  .building-science {
+    left: 42%;
+  }
+
+  .building-student {
+    right: 5%;
+  }
+}

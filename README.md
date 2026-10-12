@@ -26,10 +26,24 @@ This repository contains the **frontend only**. It is a [React](https://react.de
 | UI library | React 19 |
 | Build tool / dev server | Vite 8 |
 | Language | JavaScript (JSX, ES modules) |
-| Styling | Plain CSS (the original project stylesheet, reused) |
-| Tooling | npm, `@vitejs/plugin-react` |
+| Styling | Tailwind CSS v4 with a design-token layer (`@theme`) |
+| Tooling | npm, `@vitejs/plugin-react`, `@tailwindcss/vite` |
 
-No UI framework, state-management library, or CSS preprocessor is used — the app relies on React state/hooks and the existing stylesheet.
+No UI framework or state-management library is used — the app relies on React state/hooks. Styling is done with Tailwind utilities that consume the project's design tokens.
+
+### Styling architecture
+
+The styling follows a token-first CSS architecture:
+
+- **`src/styles/theme.css`** — the single source of truth for design tokens, written with Tailwind v4 `@theme` blocks in three layers:
+  1. **Raw color scales** (`--color-primary-*`, `--color-secondary-*`, `--color-neutral-*`, and the utility state colors) — never consumed directly by components.
+  2. **Fonts** (`--font-sans`, `--font-heading`, `--font-mono`) — aliased to variables loaded by the Google Fonts `<link>` in `index.html`.
+  3. **Semantic aliases** (`--color-background`, `--color-foreground`, `--color-card`, `--color-border`, `--color-primary-tint`, the `--color-sidebar-*` rail, utility-state pairs, chart/text roles, and elevation) — what components actually build with.
+- **`src/styles/globals.css`** — the entry stylesheet. It imports Tailwind and the token layer, sets base body typography, and themes native browser UI (scrollbars, selection).
+- **`src/styles/components/campus-map.css`** — the one retained component stylesheet. The styled campus map is an absolutely positioned, transformed illustration whose geometry cannot be expressed with Tailwind utilities without heavy arbitrary values, so it lives in its own scoped file.
+- **`src/styles/surfaces.js`** — a shared class recipe for the card/panel shell so the same surface utilities are not duplicated.
+
+Component styles are written as Tailwind utilities in JSX and consume the semantic tokens (for example `bg-card`, `text-muted-foreground`, `border-border`). The original design's colors are preserved: the brand anchors (green `#46ab83`, green-dark `#27765b`, orange `#ef9f4c`, blue `#6e95dc`, purple `#a180c7`, canvas `#f4f7f4`, panel `#ffffff`, line `#e4ebe6`, ink `#10251f`) are represented byte-for-byte as tokens.
 
 ## Prerequisites
 
@@ -73,24 +87,34 @@ The build output in `dist/` is a static site and can be hosted on any static pro
 └── FrontEnd/                     # React + Vite application
     ├── index.html                # Vite HTML entry (mounts #root)
     ├── package.json
-    ├── vite.config.js
+    ├── vite.config.js            # React + Tailwind Vite plugins
     └── src/
         ├── main.jsx              # React entry point
         ├── App.jsx               # Top-level layout and shared state
-        ├── styles.css            # Existing dashboard visual system
-        ├── components/           # One component per dashboard region
+        ├── styles/               # Styling architecture
+        │   ├── theme.css         # Design tokens (@theme: scales, fonts, aliases)
+        │   ├── globals.css       # Entry stylesheet + base/native-UI styling
+        │   ├── surfaces.js       # Shared card/panel surface class recipe
+        │   └── components/
+        │       └── campus-map.css  # Scoped campus-map illustration styles
+        ├── components/           # One component per dashboard region (+ leaves)
         │   ├── Sidebar.jsx
         │   ├── Topbar.jsx
         │   ├── MetricGrid.jsx
         │   ├── CampusMap.jsx
         │   ├── HealthPanel.jsx
+        │   ├── HealthAlert.jsx   # Single hardware-alert row
         │   ├── WasteChart.jsx
         │   ├── PointsChart.jsx
         │   ├── SyncBanner.jsx
         │   ├── PageFooter.jsx
-        │   └── Toast.jsx
+        │   ├── Toast.jsx
+        │   ├── Eyebrow.jsx       # Shared monospace kicker
+        │   ├── TrendBadge.jsx    # Shared percentage chip
+        │   └── StatusDot.jsx     # Shared status dot
         ├── data/
-        │   └── mockData.js       # All mock content used by the UI
+        │   ├── mockData.js       # All mock content used by the UI
+        │   └── constants.js      # Static UI options and decorative geometry
         └── services/
             └── syncApi.js        # Simulated bulk-sync endpoint (swap for a real API)
 ```
@@ -122,5 +146,6 @@ No deployment is configured in this repository.
 
 ## Notes
 
-- This frontend was migrated from an original plain HTML/CSS/JavaScript prototype. The visual design, responsive behavior, and the existing stylesheet were preserved.
+- This frontend was migrated from an original plain HTML/CSS/JavaScript prototype. The visual design, responsive behavior, and colors were preserved while the styling was rebuilt on Tailwind CSS v4 with a design-token layer.
+- The migration consolidated a handful of one-off, near-identical greens/greys (`#86968d`, `#87968e`, `#88968f`, `#89978f`, and similar) into shared neutral scale steps, and snapped two decorative micro-details (the eyebrow color and the notification dot) to the nearest token. All brand and structural anchors are exact.
 - The application is independent of any backend and does not require a server to run.

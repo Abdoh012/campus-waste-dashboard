@@ -48,20 +48,20 @@ export default function App() {
   };
 
   return (
-    <div className="app-shell">
+    <div className="flex min-h-screen max-[700px]:block">
       <Sidebar />
 
-      <main className="main-content">
+      <main className="ml-[248px] grow max-w-[1600px] px-10 pt-8 pb-[22px] max-[1100px]:px-6 max-[1100px]:py-[26px] max-[700px]:m-0 max-[700px]:w-full max-[700px]:px-[15px] max-[700px]:py-[22px]">
         <Topbar showToast={showToast} />
 
         <MetricGrid totalPoints={totalPoints} />
 
-        <section className="content-grid">
+        <section className="mb-4 grid grid-cols-[minmax(0,1.8fr)_minmax(280px,0.85fr)] gap-4 max-[1100px]:grid-cols-1">
           <CampusMap showToast={showToast} />
           <HealthPanel showToast={showToast} />
         </section>
 
-        <section className="analytics-grid" id="analytics">
+        <section className="mb-4 grid grid-cols-[minmax(0,1.55fr)_minmax(280px,0.9fr)] gap-4 max-[1100px]:grid-cols-1 max-[700px]:gap-2.5" id="analytics">
           <WasteChart showToast={showToast} />
           <PointsChart totalPoints={totalPoints} />
         </section>

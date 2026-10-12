@@ -1,0 +1,48 @@
+/* ============================================================================
+   GLOBALS.CSS — entry stylesheet.
+
+   Imports the Tailwind engine + token layer, then defines the small amount of
+   global/base styling the design needs plus native browser UI theming (R12).
+   Everything else lives in Tailwind utilities inside the components, except
+   the campus-map illustration, which has its own component stylesheet because
+   Tailwind utilities cannot express its transforms/background pattern.
+============================================================================ */
+
+@import './theme.css';
+@import './components/campus-map.css';
+
+/* Font sources loaded by the Google Fonts <link> in index.html. The token
+   layer aliases these (R10) instead of hardcoding family names itself. */
+:root {
+  --font-dm-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-space-grotesk: 'Space Grotesk', 'DM Sans', sans-serif;
+  --font-dm-mono: 'DM Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Native UI theming (R12) */
+  --scrollbar-thumb: var(--color-primary-500);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground;
+    margin: 0;
+    font-size: 14px;
+    /* The original stylesheet relied on the browser default ('normal'); Tailwind's
+       preflight sets 1.5, which would change every inherited line-height. */
+    line-height: normal;
+  }
+
+  /* Native UI theming (R12): scrollbars + selection use brand tints. */
+  * {
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+
+  ::selection {
+    background-color: var(--color-primary-tint);
+    color: var(--color-primary-text);
+  }
+}
