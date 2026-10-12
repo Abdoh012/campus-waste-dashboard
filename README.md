@@ -4,6 +4,8 @@ A responsive operations dashboard for a smart-campus waste recycling system. It 
 
 This repository contains the **frontend only**. It is a [React](https://react.dev/) + [Vite](https://vite.dev/) single-page application that runs entirely on **local mock data** — no backend, server, or database is required to run it.
 
+**Repository:** [github.com/Abdoh012/campus-waste-dashboard](https://github.com/Abdoh012/campus-waste-dashboard)
+
 ## Features
 
 - **Sidebar navigation** with anchor links to each dashboard section.
@@ -38,10 +40,10 @@ No UI framework, state-management library, or CSS preprocessor is used — the a
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<your-username>/<your-repo>.git
+git clone https://github.com/Abdoh012/campus-waste-dashboard.git
 
 # 2. Move into the frontend app
-cd <your-repo>/FrontEnd
+cd campus-waste-dashboard/FrontEnd
 
 # 3. Install dependencies
 npm install
