@@ -27,6 +27,14 @@ pnpm-debug.log*
 Thumbs.db
 
 # ---------------------------------------------------------------------------
+# Local agent tooling (impeccable skill/command installs). Kept on disk for
+# the design-review workflow but never part of the app source.
+# ---------------------------------------------------------------------------
+.agent/
+.claude/
+.opencode/
+
+# ---------------------------------------------------------------------------
 # Not part of the frontend app yet.
 # The backend and hardware artifacts are kept locally and intentionally left
 # out of this repository for now. Remove the relevant lines when you are ready
