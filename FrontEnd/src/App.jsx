@@ -1,16 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import BottomNav from './components/BottomNav.jsx';
-import Topbar from './components/Topbar.jsx';
-import MetricGrid from './components/MetricGrid.jsx';
-import CampusMap from './components/CampusMap.jsx';
-import HealthPanel from './components/HealthPanel.jsx';
-import WasteChart from './components/WasteChart.jsx';
-import PointsChart from './components/PointsChart.jsx';
-import SyncBanner from './components/SyncBanner.jsx';
-import PageFooter from './components/PageFooter.jsx';
-import Toast from './components/Toast.jsx';
-import { cachedSyncEvents, dashboardSummary, navItems } from './data/mockData.js';
-import { syncCachedEvents } from './services/syncApi.js';
+import { useCallback, useEffect, useRef, useState } from "react";
+import BottomNav from "./components/BottomNav.jsx";
+import Topbar from "./components/Topbar.jsx";
+import MetricGrid from "./components/MetricGrid.jsx";
+import CampusMap from "./components/CampusMap.jsx";
+import HealthPanel from "./components/HealthPanel.jsx";
+import WasteChart from "./components/WasteChart.jsx";
+import PointsChart from "./components/PointsChart.jsx";
+import PageFooter from "./components/PageFooter.jsx";
+import Toast from "./components/Toast.jsx";
+import {
+  cachedSyncEvents,
+  dashboardSummary,
+  navItems,
+} from "./data/mockData.js";
+import { syncCachedEvents } from "./services/syncApi.js";
 
 const TOAST_DURATION_MS = 3200;
 
@@ -41,10 +44,17 @@ function useActiveSection() {
   }, [activeId]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') return undefined;
+    if (
+      typeof window === "undefined" ||
+      typeof IntersectionObserver === "undefined"
+    )
+      return undefined;
 
     const targets = navItems
-      .map((item) => ({ id: item.id, el: document.getElementById(item.href.slice(1)) }))
+      .map((item) => ({
+        id: item.id,
+        el: document.getElementById(item.href.slice(1)),
+      }))
       .filter((target) => target.el);
 
     if (!targets.length) return undefined;
@@ -62,7 +72,9 @@ function useActiveSection() {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          const target = targets.find((candidate) => candidate.el === entry.target);
+          const target = targets.find(
+            (candidate) => candidate.el === entry.target,
+          );
           if (!target) return;
           if (entry.isIntersecting) visible.add(target.id);
           else visible.delete(target.id);
@@ -71,7 +83,7 @@ function useActiveSection() {
       },
       // Keep the floating dock (and the circle it lifts above its edge) out of
       // the measurement band.
-      { rootMargin: '0px 0px -110px 0px' },
+      { rootMargin: "0px 0px -110px 0px" },
     );
 
     targets.forEach((target) => observer.observe(target.el));
@@ -101,38 +113,30 @@ function useActiveSection() {
 }
 
 export default function App() {
-  const [toastMessage, setToastMessage] = useState('');
+  const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
   const toastTimer = useRef(null);
   const { activeId, navigate } = useActiveSection();
 
-  const [totalPoints, setTotalPoints] = useState(dashboardSummary.pointsDistributed);
-  const [pendingEvents, setPendingEvents] = useState(dashboardSummary.pendingSyncEvents);
+  const [totalPoints, setTotalPoints] = useState(
+    dashboardSummary.pointsDistributed,
+  );
+  const [pendingEvents, setPendingEvents] = useState(
+    dashboardSummary.pendingSyncEvents,
+  );
   const [syncing, setSyncing] = useState(false);
 
   const showToast = useCallback((message) => {
     setToastMessage(message);
     setToastVisible(true);
     clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToastVisible(false), TOAST_DURATION_MS);
+    toastTimer.current = setTimeout(
+      () => setToastVisible(false),
+      TOAST_DURATION_MS,
+    );
   }, []);
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
-
-  const handleSync = async () => {
-    setSyncing(true);
-    try {
-      const result = await syncCachedEvents(cachedSyncEvents, totalPoints);
-      setTotalPoints(result.newTotalPoints);
-      setPendingEvents(0);
-      showToast(`Sync complete · ${result.received} events added ${result.pointsAdded} points`);
-    } catch (error) {
-      console.error('Error syncing cached events:', error);
-      showToast('Sync failed · check the connection and try again');
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   return (
     <div className="min-h-screen">
@@ -149,12 +153,14 @@ export default function App() {
           <HealthPanel showToast={showToast} />
         </section>
 
-        <section className="mb-4 grid grid-cols-[minmax(0,1.55fr)_minmax(280px,0.9fr)] gap-4 max-[1100px]:grid-cols-1 max-[700px]:gap-2.5" id="analytics">
+        <section
+          className="mb-4 grid grid-cols-[minmax(0,1.55fr)_minmax(280px,0.9fr)] gap-4 max-[1100px]:grid-cols-1 max-[700px]:gap-2.5"
+          id="analytics"
+        >
           <WasteChart showToast={showToast} />
           <PointsChart totalPoints={totalPoints} />
         </section>
 
-        <SyncBanner pendingEvents={pendingEvents} syncing={syncing} onSync={handleSync} />
         <PageFooter />
       </main>
 
