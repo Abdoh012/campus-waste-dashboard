@@ -33,6 +33,7 @@ Thumbs.db
 .agent/
 .claude/
 .opencode/
+.impeccable/
 
 # Local agent documentation (agent/product/design-system docs). Kept on disk,
 # never published to GitHub.
