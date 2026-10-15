@@ -34,6 +34,12 @@ Thumbs.db
 .claude/
 .opencode/
 
+# Local agent documentation (agent/product/design-system docs). Kept on disk,
+# never published to GitHub.
+AGENTS.md
+DESIGN.md
+PRODUCT.md
+
 # ---------------------------------------------------------------------------
 # Not part of the frontend app yet.
 # The backend and hardware artifacts are kept locally and intentionally left
