@@ -3,13 +3,11 @@
 
    Imports the Tailwind engine + token layer, then defines the small amount of
    global/base styling the design needs plus native browser UI theming (R12).
-   Everything else lives in Tailwind utilities inside the components, except
-   the campus-map illustration, which has its own component stylesheet because
-   Tailwind utilities cannot express its transforms/background pattern.
+   Everything else lives in Tailwind utilities inside the components: the map is
+   a real Google Map now, so the one component stylesheet is gone.
 ============================================================================ */
 
 @import './theme.css';
-@import './components/campus-map.css';
 
 /* Font sources loaded by the Google Fonts <link> in index.html. The token
    layer aliases these (R10) instead of hardcoding family names itself. */
