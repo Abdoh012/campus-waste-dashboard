@@ -8,6 +8,7 @@ import type { ChartConfig } from "../../../components/ui/chart";
 import Eyebrow from "../../../shared/ui/Eyebrow";
 import TrendBadge from "../../../shared/ui/TrendBadge";
 import { SURFACE } from "../../../styles/surfaces";
+import { useI18n } from "../../../shared/i18n/useI18n";
 import { pointsByDay } from "../mockData";
 
 /** See `WasteChart`: ticks are SVG text, and ChartContainer owns their colour. */
@@ -16,36 +17,41 @@ const AXIS_TICK = {
   fontSize: 10,
 } as const;
 
-const chartConfig = {
-  height: {
-    label: "Points earned",
-    color: "var(--color-bar-active)",
-  },
-} satisfies ChartConfig;
+/** The monthly points target the card and the chart footer quote. */
+const MONTHLY_POINTS_GOAL = 6000;
 
 export interface PointsChartProps {
   totalPoints: number;
 }
 
 export default function PointsChart({ totalPoints }: PointsChartProps) {
+  const { t, formatNumber } = useI18n();
+
+  const chartConfig = {
+    height: {
+      label: t("points.seriesLabel"),
+      color: "var(--color-bar-active)",
+    },
+  } satisfies ChartConfig;
+
   return (
     <article className={`${SURFACE} p-5 max-sm:p-4`}>
       <div className="flex items-start justify-between">
         <div>
-          <Eyebrow>STUDENT ENGAGEMENT</Eyebrow>
+          <Eyebrow>{t("points.eyebrow")}</Eyebrow>
           <h3 className="font-heading text-lg font-semibold tracking-tight">
-            Points distributed
+            {t("points.title")}
           </h3>
         </div>
       </div>
 
       <div className="mt-5 mb-2 flex items-baseline gap-3">
         <strong className="font-heading text-3xl font-semibold tracking-tighter">
-          {totalPoints.toLocaleString()}
+          {formatNumber(totalPoints)}
         </strong>
         <TrendBadge tone="up">↑ 18.4%</TrendBadge>
-        <small className="ml-auto block text-2xs text-label">
-          vs. previous period
+        <small className="ms-auto block text-2xs text-label">
+          {t("points.vsPrevious")}
         </small>
       </div>
 
@@ -53,7 +59,8 @@ export default function PointsChart({ totalPoints }: PointsChartProps) {
         config={chartConfig}
         className="aspect-auto h-40 w-full"
         role="img"
-        aria-label="Points distributed bar chart"
+        aria-label={t("points.title")}
+        dir="ltr"
       >
         <BarChart
           data={pointsByDay}
@@ -102,10 +109,10 @@ export default function PointsChart({ totalPoints }: PointsChartProps) {
 
       <div className="mt-3 flex justify-between text-2xs text-label">
         <span>
-          <i className="mr-1 inline-block h-2 w-2 rounded-xs bg-bar-active"></i>
-          Points earned from sorting
+          <i className="me-1 inline-block h-2 w-2 rounded-xs bg-bar-active"></i>
+          {t("points.legend")}
         </span>
-        <span>Goal: 6,000</span>
+        <span>{t("points.goal", { goal: formatNumber(MONTHLY_POINTS_GOAL) })}</span>
       </div>
     </article>
   );

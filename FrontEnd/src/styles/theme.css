@@ -110,7 +110,9 @@
       strings inside the token layer; the literals live in :root).
 ------------------------------------------------------------------- */
 @theme inline {
-  --font-sans: 'Geist Variable', sans-serif;
+  /* Arabic glyphs are not in Geist, so Noto Kufi Arabic is the next fallback:
+     Latin keeps Geist, Arabic picks up a font that actually has the glyphs. */
+  --font-sans: 'Geist Variable', 'Noto Kufi Arabic', sans-serif;
   --font-heading: var(--font-sans);
   --font-mono: var(--font-dm-mono);
   --color-sidebar-ring: var(--sidebar-ring);

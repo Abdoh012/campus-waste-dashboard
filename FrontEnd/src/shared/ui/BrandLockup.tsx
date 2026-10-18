@@ -1,3 +1,5 @@
+import { useI18n } from '../i18n/useI18n';
+
 /** Wordmark scale steps. `sm` is the topbar lockup; `lg` gives a page more presence. */
 export type BrandLockupSize = 'sm' | 'lg';
 
@@ -35,6 +37,7 @@ export default function BrandLockup({
   className = '',
 }: BrandLockupProps) {
   const Wordmark = as;
+  const { t } = useI18n();
 
   return (
     <div className={`flex items-start gap-3 ${className}`}>
@@ -45,7 +48,7 @@ export default function BrandLockup({
       </div>
       <div>
         <p className="m-0 mb-1.5 font-mono text-2xs tracking-widest text-eyebrow">
-          SMART CAMPUS OS
+          {t('brand.kicker')}
         </p>
         <Wordmark
           className={`font-heading ${WORDMARK_SIZE[size]} font-semibold leading-tight tracking-tight`}

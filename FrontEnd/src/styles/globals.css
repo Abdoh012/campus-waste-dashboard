@@ -12,9 +12,9 @@
 /* Font sources loaded by the Google Fonts <link> in index.html. The token
    layer aliases these (R10) instead of hardcoding family names itself. */
 :root {
-  --font-dm-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-space-grotesk: 'Space Grotesk', 'DM Sans', sans-serif;
-  --font-dm-mono: 'DM Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-dm-sans: 'DM Sans', 'Noto Kufi Arabic', ui-sans-serif, system-ui, sans-serif;
+  --font-space-grotesk: 'Space Grotesk', 'DM Sans', 'Noto Kufi Arabic', sans-serif;
+  --font-dm-mono: 'DM Mono', 'Noto Kufi Arabic', ui-monospace, SFMono-Regular, monospace;
 
   /* Native UI theming (R12) */
   --scrollbar-thumb: var(--color-primary-500);
@@ -32,6 +32,13 @@
     /* The original stylesheet relied on the browser default ('normal'); Tailwind's
        preflight sets 1.5, which would change every inherited line-height. */
     line-height: normal;
+  }
+
+  /* Arabic is a cursive script: letter-spacing (used by the tracked monospace
+     micro-labels) breaks the joins between glyphs, so it is reset in RTL. This
+     wins over Tailwind's `tracking-*` utilities by specificity. */
+  html[dir='rtl'] * {
+    letter-spacing: normal;
   }
 
   /* Native UI theming (R12): scrollbars + selection use brand tints. */

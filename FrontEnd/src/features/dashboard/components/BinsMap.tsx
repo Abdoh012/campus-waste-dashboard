@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   AdvancedMarker,
   APIProvider,
@@ -6,7 +6,14 @@ import {
   useMap,
 } from '@vis.gl/react-google-maps';
 import { SURFACE } from '../../../styles/surfaces';
-import { CAMPUS_CENTER, POPUP_PLACEMENT, binLocations } from '../campusMapData';
+import { useI18n } from '../../../shared/i18n/useI18n';
+import type { ApiError } from '../../../services/apiClient';
+import {
+  MAP_ZOOM,
+  POPUP_PLACEMENT,
+  centerOf,
+} from '../campusMapData';
+import type { BinLocation } from '../campusMapData';
 import BinMarker from './BinMarker';
 import LocationPopup from './LocationPopup';
 import MapNotice from './MapNotice';
@@ -40,6 +47,11 @@ export interface BinsMapProps {
   onZoomChange: (zoom: number) => void;
   active: ActiveLocation | null;
   onActiveChange: (active: ActiveLocation | null) => void;
+  /** Live buildings from `GET /api/bins`, already grouped by `toBinLocations`. */
+  locations: readonly BinLocation[];
+  binsLoading: boolean;
+  binsError: ApiError | null;
+  onRetry: () => void;
 }
 
 /**
@@ -58,11 +70,14 @@ function MapInstance({ onMap }: { onMap: (map: google.maps.Map) => void }) {
   return null;
 }
 
+const RETRY_BUTTON =
+  'cursor-pointer rounded border border-border bg-card px-3 py-1.5 text-2xs font-medium text-foreground transition-colors duration-200 hover:bg-muted';
+
 /**
- * The live Google map: one numbered, colour-coded marker per bin location, with
- * the three-bin popup opening on hover (desktop) or tap (touch). Loading,
- * missing-key and load-failure states replace the map rather than leaving a
- * broken one behind.
+ * The live Google map: one numbered, colour-coded marker per building, with a
+ * popup listing that building's bins on hover (desktop) or tap (touch).
+ * Loading, empty, failed-request, missing-key and Maps-failure states replace
+ * the map rather than leaving a broken one behind.
  */
 export default function BinsMap({
   mapTypeId,
@@ -70,7 +85,12 @@ export default function BinsMap({
   onZoomChange,
   active,
   onActiveChange,
+  locations,
+  binsLoading,
+  binsError,
+  onRetry,
 }: BinsMapProps) {
+  const { t } = useI18n();
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -79,8 +99,9 @@ export default function BinsMap({
   /** Location the map has already been nudged for, so it only ever nudges once. */
   const nudgedFor = useRef<string | null>(null);
 
+  const center = useMemo(() => centerOf(locations), [locations]);
   const activeLocation = active
-    ? binLocations.find((location) => location.id === active.id) ?? null
+    ? locations.find((location) => location.id === active.id) ?? null
     : null;
 
   /**
@@ -156,12 +177,28 @@ export default function BinsMap({
     return () => listener.remove();
   }, [map, active, activeLocation]);
 
+  // Frame the live bins once the data and the map instance are both ready.
+  // A single bin keeps the designed zoom instead of Google's maximum.
+  useEffect(() => {
+    if (!map || locations.length === 0) return;
+
+    if (locations.length === 1) {
+      map.setCenter(locations[0].position);
+      map.setZoom(MAP_ZOOM.initial);
+      return;
+    }
+
+    const bounds = new google.maps.LatLngBounds();
+    for (const location of locations) bounds.extend(location.position);
+    map.fitBounds(bounds, 48);
+  }, [map, locations]);
+
   if (!API_KEY) {
     return (
       <MapNotice
         tone="config"
-        title="Campus map needs an API key"
-        detail="Add VITE_GOOGLE_MAPS_API_KEY to FrontEnd/.env.local and restart the dev server — see FrontEnd/.env.example."
+        title={t('map.notice.missingKey.title')}
+        detail={t('map.notice.missingKey.detail')}
       />
     );
   }
@@ -170,8 +207,48 @@ export default function BinsMap({
     return (
       <MapNotice
         tone="error"
-        title="Campus map unavailable"
-        detail="Google Maps could not load. Check the API key, the connection, and that Maps JavaScript API is enabled for the key."
+        title={t('map.notice.error.title')}
+        detail={t('map.notice.error.detail')}
+      />
+    );
+  }
+
+  if (binsLoading) {
+    return (
+      <MapNotice
+        tone="loading"
+        title={t('map.notice.loading.title')}
+        detail={t('map.notice.loading.detail')}
+      />
+    );
+  }
+
+  if (binsError) {
+    return (
+      <MapNotice
+        tone="error"
+        title={t('map.notice.fetchError.title')}
+        detail={t('map.notice.fetchError.detail')}
+        action={
+          <button type="button" className={RETRY_BUTTON} onClick={onRetry}>
+            {t('map.notice.retry')}
+          </button>
+        }
+      />
+    );
+  }
+
+  if (locations.length === 0) {
+    return (
+      <MapNotice
+        tone="empty"
+        title={t('map.notice.empty.title')}
+        detail={t('map.notice.empty.detail')}
+        action={
+          <button type="button" className={RETRY_BUTTON} onClick={onRetry}>
+            {t('map.notice.retry')}
+          </button>
+        }
       />
     );
   }
@@ -188,7 +265,7 @@ export default function BinsMap({
           className="h-full w-full"
           mapId={MAP_ID}
           mapTypeId={mapTypeId}
-          defaultCenter={CAMPUS_CENTER}
+          defaultCenter={center}
           zoom={zoom}
           onCameraChanged={(event) => onZoomChange(event.detail.zoom)}
           onIdle={() => setLoaded(true)}
@@ -199,11 +276,14 @@ export default function BinsMap({
         >
           <MapInstance onMap={setMap} />
 
-          {binLocations.map((location) => (
+          {locations.map((location) => (
             <AdvancedMarker
               key={location.id}
               position={location.position}
-              title={`Bin ${location.number} · ${location.name}`}
+              title={t('map.marker.title', {
+                number: location.number,
+                name: location.name,
+              })}
               clickable
               anchorLeft="-50%"
               anchorTop="-50%"
@@ -230,8 +310,8 @@ export default function BinsMap({
         {!loaded && (
           <MapNotice
             tone="loading"
-            title="Loading campus map"
-            detail="Fetching the current bin locations."
+            title={t('map.notice.loading.title')}
+            detail={t('map.notice.loading.detail')}
             className="absolute inset-0"
           />
         )}

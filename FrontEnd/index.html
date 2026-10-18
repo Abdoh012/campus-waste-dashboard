@@ -8,9 +8,30 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Noto+Kufi+Arabic:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
+    <script>
+      // Apply the persisted language + direction before first paint, so an
+      // Arabic visitor never sees an LTR flash. Keep the storage key in sync
+      // with shared/i18n/catalog.ts (LOCALE_STORAGE_KEY).
+      (function () {
+        try {
+          var stored = window.localStorage.getItem('cw.locale');
+          var locale =
+            stored === 'en' || stored === 'ar'
+              ? stored
+              : (navigator.language || '').toLowerCase().indexOf('ar') === 0
+                ? 'ar'
+                : 'en';
+          document.documentElement.lang = locale;
+          document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
+        } catch (error) {
+          document.documentElement.lang = 'en';
+          document.documentElement.dir = 'ltr';
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

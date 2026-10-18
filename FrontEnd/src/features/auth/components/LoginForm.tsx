@@ -1,6 +1,10 @@
 import { Form, redirect, useNavigation } from "react-router";
 import { ArrowRight, LoaderCircle } from "lucide-react";
 import { showError, showInfo } from "../../../shared/ui/notifications";
+import { translateNow } from "../../../shared/i18n/catalog";
+import { useI18n } from "../../../shared/i18n/useI18n";
+import { ApiError, setAuthToken } from "../../../services/apiClient";
+import { login } from "../../../services/authApi";
 import TextField from "./TextField";
 
 const EMAIL_ID = "operator-email";
@@ -11,29 +15,30 @@ const LINK =
 
 export default function LoginForm() {
   const navigation = useNavigation();
+  const { t } = useI18n();
 
   const isSubmitting = navigation.state === "submitting";
 
   return (
-    <Form method="post" className="mt-7" aria-label="Operator sign in">
+    <Form method="post" className="mt-7" aria-label={t("auth.formAria")}>
       <div className="flex flex-col gap-5">
         <TextField
           id={EMAIL_ID}
-          label="Operator email"
+          label={t("auth.email.label")}
           type="email"
           name="email"
           autoComplete="username"
-          placeholder="name@campus.edu"
+          placeholder={t("auth.email.placeholder")}
           disabled={isSubmitting}
         />
 
         <TextField
           id={PASSWORD_ID}
-          label="Password"
+          label={t("auth.password.label")}
           type="password"
           name="password"
           autoComplete="current-password"
-          placeholder="Enter your password"
+          placeholder={t("auth.password.placeholder")}
           disabled={isSubmitting}
         />
       </div>
@@ -42,11 +47,9 @@ export default function LoginForm() {
         <button
           type="button"
           className={`${LINK} py-1`}
-          onClick={() =>
-            showInfo("Password reset isn't available in this build")
-          }
+          onClick={() => showInfo(t("auth.toast.passwordReset"))}
         >
-          Forgot password?
+          {t("auth.forgot")}
         </button>
       </div>
 
@@ -61,13 +64,13 @@ export default function LoginForm() {
               className="h-4 w-4 animate-spin motion-reduce:animate-none"
               aria-hidden="true"
             />
-            Signing in…
+            {t("auth.submitting")}
           </>
         ) : (
           <>
-            Sign in
+            {t("auth.submit")}
             <ArrowRight
-              className="h-4 w-4 text-export-accent"
+              className="h-4 w-4 text-export-accent rtl:rotate-180"
               aria-hidden="true"
             />
           </>
@@ -82,9 +85,28 @@ export async function Login({ request }: { request: Request }) {
   const email = fd.get("email");
   const password = fd.get("password");
 
-  if (!email || !password) {
-    showError("Please fill in all the fields");
+  if (
+    typeof email !== "string" ||
+    typeof password !== "string" ||
+    email.trim() === "" ||
+    password === ""
+  ) {
+    showError(translateNow("auth.toast.missingFields"));
+    return null;
   }
 
-  return redirect("/dashboard");
+  try {
+    const result = await login(email.trim(), password);
+    setAuthToken(result.token);
+    return redirect("/dashboard");
+  } catch (cause) {
+    if (cause instanceof ApiError && cause.status === 401) {
+      showError(translateNow("auth.toast.invalidCredentials"));
+    } else if (cause instanceof ApiError && cause.status === 0) {
+      showError(translateNow("auth.toast.networkError"));
+    } else {
+      showError(translateNow("auth.toast.loginFailed"));
+    }
+    return null;
+  }
 }

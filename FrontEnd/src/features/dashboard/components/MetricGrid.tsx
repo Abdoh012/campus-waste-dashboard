@@ -1,16 +1,43 @@
-import StatCard from '../../../shared/ui/StatCard';
-import TrendBadge from '../../../shared/ui/TrendBadge';
-import { metricCards } from '../metricCards';
+import { useMemo } from "react";
+import StatCard from "../../../shared/ui/StatCard";
+import TrendBadge from "../../../shared/ui/TrendBadge";
+import { useI18n } from "../../../shared/i18n/useI18n";
+import { useStats } from "../../../shared/hooks/useStats";
+import { buildMetricCards } from "../metricCards";
 
-const UNIT = 'font-sans text-xs font-medium tracking-normal text-label';
+const UNIT = "font-sans text-xs font-medium tracking-normal text-label";
 
 export default function MetricGrid() {
+  const { t, tn, formatNumber } = useI18n();
+  const { stats, loading, error } = useStats();
+
+  const cards = useMemo(
+    () => (stats ? buildMetricCards(t, tn, formatNumber, stats) : []),
+    [t, tn, formatNumber, stats],
+  );
+
+  if (loading) {
+    return (
+      <section className="mb-4 text-sm text-label" id="overview">
+        {t("metric.loading")}
+      </section>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <section className="mb-4 text-sm text-label" id="overview">
+        {t("metric.error")}
+      </section>
+    );
+  }
+
   return (
     <section
       className="mb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5"
       id="overview"
     >
-      {metricCards.map((metric) => (
+      {cards.map((metric) => (
         <StatCard
           key={metric.id}
           label={metric.label}
@@ -25,10 +52,16 @@ export default function MetricGrid() {
             </>
           }
           footer={
-            <>
-              <TrendBadge tone={metric.badge.tone}>{metric.badge.text}</TrendBadge>
-              <span>{metric.note}</span>
-            </>
+            metric.badge || metric.note ? (
+              <>
+                {metric.badge && (
+                  <TrendBadge tone={metric.badge.tone}>
+                    {metric.badge.text}
+                  </TrendBadge>
+                )}
+                {metric.note && <span>{metric.note}</span>}
+              </>
+            ) : undefined
           }
         >
           {metric.visual}

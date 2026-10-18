@@ -16,4 +16,9 @@ interface ImportMetaEnv {
    * `DEMO_MAP_ID`, which is fine locally but not for production.
    */
   readonly VITE_GOOGLE_MAPS_MAP_ID?: string;
+  /**
+   * Base URL of the campus API. Defaults to the local Express server
+   * (`http://localhost:5000/api`) when unset.
+   */
+  readonly VITE_API_BASE_URL?: string;
 }

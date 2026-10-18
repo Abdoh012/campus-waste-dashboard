@@ -30,8 +30,11 @@ export interface DashboardSummary {
   registeredDevices: number;
 }
 
+/** The status the API reports for a bin, including the read-time offline override. */
+export type BinStatus = 'healthy' | 'attention' | 'critical' | 'offline';
+
 /** Fill-level status a bin (or its marker) is colour-coded by. */
-export type BinTone = 'green' | 'yellow' | 'red';
+export type BinTone = 'green' | 'yellow' | 'red' | 'offline';
 
 export type AlertTone = 'critical' | 'warning';
 

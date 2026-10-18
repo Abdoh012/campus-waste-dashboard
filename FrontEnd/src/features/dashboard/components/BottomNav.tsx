@@ -17,6 +17,8 @@ import {
 import Motion from "../../../shared/ui/Motion";
 import { navItems } from "../mockData";
 import type { NavId } from "../types";
+import { useI18n } from "../../../shared/i18n/useI18n";
+import type { StringKey } from "../../../shared/i18n/locales/en";
 
 /**
  * Dock icons, keyed by destination id.
@@ -31,6 +33,14 @@ const NAV_ICONS: Record<NavId, LucideIcon> = {
   "campus-map": MapPin,
   hardware: Cpu,
   analytics: ChartColumn,
+};
+
+/** The visible label for each destination, translated at render time. */
+const NAV_LABEL_KEYS: Record<NavId, StringKey> = {
+  overview: "nav.overview",
+  "campus-map": "nav.campus-map",
+  hardware: "nav.hardware",
+  analytics: "nav.analytics",
 };
 
 /** Rest state: a thin outline. The current tab swaps to a bolder stroke. */
@@ -148,6 +158,7 @@ export default function BottomNav({
   onLogout,
 }: BottomNavProps) {
   const reduceMotion = useReducedMotion();
+  const { t, dir } = useI18n();
   const trayRef = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(0);
 
@@ -172,6 +183,9 @@ export default function BottomNav({
   const activeItem = navItems[activeIndex];
   const ActiveIcon = NAV_ICONS[activeItem.id];
   const center = trayCenter(activeIndex, width);
+  // The circle is anchored to the physical left and translated; RTL mirrors it.
+  const circleX =
+    dir === "rtl" ? width - center - CIRCLE_SIZE / 2 : center - CIRCLE_SIZE / 2;
 
   const slide = reduceMotion ? { duration: 0 } : SLIDE;
   const fade = reduceMotion ? FADE : CROSSFADE;
@@ -192,7 +206,7 @@ export default function BottomNav({
         <nav
           ref={trayRef}
           className="pointer-events-auto relative mx-auto h-15 w-full max-w-70"
-          aria-label="Primary navigation"
+          aria-label={t("common.primaryNav")}
         >
           {/* Nothing is drawn until the width is known: the path is worthless at 0
               and must not mount at a wrong centre. */}
@@ -202,7 +216,10 @@ export default function BottomNav({
               viewBox={`0 0 ${round(width)} ${BAR_HEIGHT}`}
               preserveAspectRatio="none"
               aria-hidden="true"
-              style={{ filter: "drop-shadow(var(--shadow-card))" }}
+              style={{
+                filter: "drop-shadow(var(--shadow-card))",
+                transform: dir === "rtl" ? "scaleX(-1)" : undefined,
+              }}
             >
               <motion.path
                 d={trayPath(width, center)}
@@ -245,7 +262,7 @@ export default function BottomNav({
                     }
                     transition={TAP}
                   >
-                    <span className="sr-only">{item.label}</span>
+                    <span className="sr-only">{t(NAV_LABEL_KEYS[item.id])}</span>
                     <Motion
                       as="span"
                       className={[
@@ -270,7 +287,7 @@ export default function BottomNav({
                           transition={fade}
                           aria-hidden="true"
                         >
-                          {item.label}
+                          {t(NAV_LABEL_KEYS[item.id])}
                         </Motion>
                       )}
                     </AnimatePresence>
@@ -288,7 +305,7 @@ export default function BottomNav({
               as="div"
               className="pointer-events-none absolute left-0 -top-8 z-10 grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-card"
               initial={false}
-              animate={{ x: center - CIRCLE_SIZE / 2 }}
+              animate={{ x: circleX }}
               transition={slide}
               aria-hidden="true"
             >
@@ -313,8 +330,8 @@ export default function BottomNav({
           as="button"
           type="button"
           onClick={onLogout}
-          title="Sign out"
-          aria-label="Sign out"
+          title={t("common.signOut")}
+          aria-label={t("common.signOut")}
           className="pointer-events-auto grid h-15 w-15 shrink-0 cursor-pointer place-items-center rounded-full border border-border bg-card text-muted-foreground shadow-card outline-ring transition-colors duration-200 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2"
           whileTap={reduceMotion ? undefined : { scale: 0.96 }}
           transition={TAP}
