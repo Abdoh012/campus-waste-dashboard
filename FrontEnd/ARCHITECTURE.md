@@ -48,9 +48,12 @@ features/dashboard/
 ├─ hooks/         Feature hooks (useActiveSection — the dock's active destination,
 │                 moved only by an explicit selection).
 ├─ types.ts       Domain models: NavItem, DashboardSummary, HardwareAlert,
-│                 PointsByDay, WasteSortedPoint, BinTone and their tone unions.
+│                 PointsByDay, WasteEntry, WasteSeriesPoint, BinTone and their
+│                 tone unions.
 ├─ mockData.ts    Typed fixtures for the models above (MOCK_NOW is the snapshot's
-│                 own clock, which the chart's period filter measures from).
+│                 own clock, which the chart's range is measured from; wasteEntries
+│                 is the generated day-by-day waste series, scaled so the current
+│                 month matches the KPI).
 ├─ campusMapData.ts  The map's models (Bin, BinLocation), CAMPUS_CENTER and the
 │                 mock bin locations, the marker-tone thresholds (FILL_THRESHOLDS
 │                 with fillTone / locationTone / peakFill) and the view/zoom config.
@@ -58,8 +61,11 @@ features/dashboard/
 │                 each carrying its own visual.
 ├─ options.ts     Static UI options (no domain data); WASTE_PERIODS is narrowed
 │                 by isWastePeriod for the chart's `<select>`.
-└─ wasteSeries.ts The waste chart's period filter: the series points a selected
-                  period covers, measured from MOCK_NOW.
+├─ wasteSeries.ts The waste chart's bucketing: buildSeries turns the day-by-day
+│                 entries into one zero-filled series per selected range (daily
+│                 buckets for the trailing windows, monthly for the year),
+│                 measured from MOCK_NOW; niceAxis sizes the y axis.
+└─ wasteSeries.test.ts  Unit tests for the two above (npm test / vitest).
 
 features/auth/
 ├─ components/    Reusable sign-in form pieces (LoginForm, TextField).

@@ -52,13 +52,22 @@ export interface PointsByDay {
   active?: boolean;
 }
 
-export interface WasteSortedPoint {
-  /** Short date label for the x axis, e.g. `'Aug 19'`. */
-  week: string;
-  /** The week itself, ISO `YYYY-MM-DD` — what the period filter measures. */
+/**
+ * One day of sorted waste — the waste chart's raw grain. A calendar day, not an
+ * instant: date-only ISO strings carry no zone, so a bucket can never shift with
+ * the reader's clock.
+ */
+export interface WasteEntry {
+  /** The day it was recorded, ISO `YYYY-MM-DD`. */
   date: string;
-  /** Kilograms sorted during that week. */
+  /** Kilograms sorted that day. */
   kg: number;
-  /** Draws the emphasised marker on this point. */
-  emphasised?: boolean;
+}
+
+/** One point of the waste chart's line, after a range's entries are bucketed. */
+export interface WasteSeriesPoint {
+  /** Axis label: `'Aug 26'` for a daily bucket, `'Aug'` for a monthly one. */
+  label: string;
+  /** Everything sorted in the bucket; 0 when nothing was recorded in it. */
+  kg: number;
 }

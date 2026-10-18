@@ -84,6 +84,15 @@ npm run preview    # serves the production build locally for verification
 
 The build output in `dist/` is a static site and can be hosted on any static provider.
 
+## Tests
+
+```bash
+cd FrontEnd
+npm run test    # vitest run
+```
+
+The suite covers the waste chart's bucketing (`FrontEnd/src/features/dashboard/wasteSeries.test.ts`): entries summed per bucket, zero-filled gaps, each range's boundaries, and the y-axis scale. It runs on the plain TypeScript modules, so no browser or map key is needed.
+
 ## Project Structure
 
 ```
@@ -158,7 +167,9 @@ See [`FrontEnd/ARCHITECTURE.md`](FrontEnd/ARCHITECTURE.md) for the layer depende
 
 ## Mock Data
 
-All content the UI renders lives in two typed modules: `FrontEnd/src/features/dashboard/mockData.ts` (navigation items, KPI values, health alerts, the two chart series, and the cached sync events) and `FrontEnd/src/features/dashboard/campusMapData.ts` (the map's models, the six mock bin locations with their coordinates, and the marker-tone thresholds). Shared models live in `FrontEnd/src/features/dashboard/types.ts`. Components never call a network API directly.
+All content the UI renders lives in two typed modules: `FrontEnd/src/features/dashboard/mockData.ts` (navigation items, KPI values, health alerts, the generated day-by-day waste series, and the cached sync events) and `FrontEnd/src/features/dashboard/campusMapData.ts` (the map's models, the six mock bin locations with their coordinates, and the marker-tone thresholds). Shared models live in `FrontEnd/src/features/dashboard/types.ts`. Components never call a network API directly.
+
+The waste chart buckets that series per selected range in `FrontEnd/src/features/dashboard/wasteSeries.ts`: daily buckets for "Last 30 days" and "Last 7 days", a bucket per month for "This year", missing days filled with zero. The series is generated from `MOCK_NOW`, the snapshot's fixed date, so no window depends on the visitor's clock.
 
 To move the map onto real data, replace `binLocations` and `CAMPUS_CENTER` in `campusMapData.ts` with an API response of the same shape — nothing else in the map needs to change. Each location carries exactly three bins, and the marker colour is derived from the fullest of them (below 50% green, 50–79% amber, 80% and above red), so no marker colour is hardcoded in a component.
 
