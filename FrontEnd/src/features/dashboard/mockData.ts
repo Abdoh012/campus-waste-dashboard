@@ -69,16 +69,26 @@ export const healthAlerts: readonly HardwareAlert[] = [
 ];
 
 /**
+ * The mock dataset's "now" — the cached sync events are stamped the day before
+ * it, and the weekly series below ends two days before it. This app has no live
+ * clock and the data is a fixed snapshot, so the chart's period filter measures
+ * its windows from this date rather than from the visitor's wall clock, which
+ * would slowly slide every window off the data.
+ */
+export const MOCK_NOW = "2026-09-18";
+
+/**
  * The analytics line chart's weekly series (19 Aug → 16 Sep). The values were
  * read off the original hand-authored curve so the plotted line keeps its shape;
- * `emphasised` marks the two weeks the design gives a visible point marker.
+ * `emphasised` marks the two weeks the design gives a visible point marker, and
+ * `date` is what the period filter measures.
  */
 export const wasteSortedByWeek: readonly WasteSortedPoint[] = [
-  { week: "Aug 19", kg: 44 },
-  { week: "Aug 26", kg: 78, emphasised: true },
-  { week: "Sep 02", kg: 113 },
-  { week: "Sep 09", kg: 144 },
-  { week: "Sep 16", kg: 175, emphasised: true },
+  { week: "Aug 19", date: "2026-08-19", kg: 44 },
+  { week: "Aug 26", date: "2026-08-26", kg: 78, emphasised: true },
+  { week: "Sep 02", date: "2026-09-02", kg: 113 },
+  { week: "Sep 09", date: "2026-09-09", kg: 144 },
+  { week: "Sep 16", date: "2026-09-16", kg: 175, emphasised: true },
 ];
 
 export const pointsByDay: readonly PointsByDay[] = [

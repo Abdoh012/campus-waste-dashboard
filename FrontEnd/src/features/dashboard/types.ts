@@ -55,6 +55,8 @@ export interface PointsByDay {
 export interface WasteSortedPoint {
   /** Short date label for the x axis, e.g. `'Aug 19'`. */
   week: string;
+  /** The week itself, ISO `YYYY-MM-DD` — what the period filter measures. */
+  date: string;
   /** Kilograms sorted during that week. */
   kg: number;
   /** Draws the emphasised marker on this point. */

@@ -49,13 +49,17 @@ features/dashboard/
 │                 moved only by an explicit selection).
 ├─ types.ts       Domain models: NavItem, DashboardSummary, HardwareAlert,
 │                 PointsByDay, WasteSortedPoint, BinTone and their tone unions.
-├─ mockData.ts    Typed fixtures for the models above.
+├─ mockData.ts    Typed fixtures for the models above (MOCK_NOW is the snapshot's
+│                 own clock, which the chart's period filter measures from).
 ├─ campusMapData.ts  The map's models (Bin, BinLocation), CAMPUS_CENTER and the
 │                 mock bin locations, the marker-tone thresholds (FILL_THRESHOLDS
 │                 with fillTone / locationTone / peakFill) and the view/zoom config.
 ├─ metricCards.tsx  Data descriptors for the overview metric cards (Metric[]),
 │                 each carrying its own visual.
-└─ options.ts     Static UI options (no domain data).
+├─ options.ts     Static UI options (no domain data); WASTE_PERIODS is narrowed
+│                 by isWastePeriod for the chart's `<select>`.
+└─ wasteSeries.ts The waste chart's period filter: the series points a selected
+                  period covers, measured from MOCK_NOW.
 
 features/auth/
 ├─ components/    Reusable sign-in form pieces (LoginForm, TextField).

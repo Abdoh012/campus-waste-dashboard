@@ -10,6 +10,12 @@ export const MAP_VIEWS = ['Campus view', 'Satellite'] as const;
 export type MapView = (typeof MAP_VIEWS)[number];
 
 export const WASTE_PERIODS = ['Last 30 days', 'Last 7 days', 'This year'] as const;
+/** The waste chart's period selector value; `wasteSeries.ts` owns its window. */
+export type WastePeriod = (typeof WASTE_PERIODS)[number];
+
+/** Narrows the `<select>`'s string value back to the option union. */
+export const isWastePeriod = (value: string): value is WastePeriod =>
+  WASTE_PERIODS.some((option) => option === value);
 
 /** Bar heights (px) for the diversion-rate sparkline. */
 export const SPARKLINE_HEIGHTS: readonly number[] = [8, 12, 10, 16, 14, 20, 17, 23, 25];
