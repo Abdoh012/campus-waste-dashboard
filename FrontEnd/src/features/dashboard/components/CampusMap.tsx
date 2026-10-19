@@ -6,7 +6,12 @@ import { SURFACE } from "../../../styles/surfaces";
 import { useI18n } from "../../../shared/i18n/useI18n";
 import type { StringKey } from "../../../shared/i18n/locales/en";
 import { useBins } from "../hooks/useBins";
-import { FILL_THRESHOLDS, MAP_TYPE_BY_VIEW, MAP_ZOOM } from "../campusMapData";
+import {
+  FILL_THRESHOLDS,
+  MAP_TYPE_BY_VIEW,
+  MAP_ZOOM,
+  CAMPUS_CENTER,
+} from "../campusMapData";
 import { MAP_VIEWS } from "../options";
 import type { MapView } from "../options";
 import BinsMap from "./BinsMap";
@@ -130,6 +135,7 @@ export default function CampusMap() {
           binsLoading={loading}
           binsError={error}
           onRetry={reload}
+          center={CAMPUS_CENTER}
         />
       </div>
     </article>

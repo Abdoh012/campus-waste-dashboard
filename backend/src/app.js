@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { env } from './env.js';
 import apiRouter from './routes/index.js';
+import statsRouter from "./routes/stats.js"
 import { errorHandler, notFoundHandler } from './middleware/error.js';
 
 /**
@@ -29,6 +30,7 @@ export function createApp() {
   app.use(express.json({ limit: '100kb' }));
 
   app.use('/api', apiRouter);
+  app.use('/stats', statsRouter)
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import {
   Area,
   AreaChart,
   CartesianGrid,
-  ReferenceDot,
   XAxis,
   YAxis,
 } from 'recharts';
@@ -19,9 +17,13 @@ import { showSuccess } from '../../../shared/ui/notifications';
 import { SURFACE } from '../../../styles/surfaces';
 import { useI18n } from '../../../shared/i18n/useI18n';
 import type { StringKey } from '../../../shared/i18n/locales/en';
+import type { ApiError } from '../../../services/apiClient';
+import type {
+  FillHistoryResponse,
+  HistoryBucket,
+} from '../../../services/historyApi';
 import { isWastePeriod, WASTE_PERIODS } from '../options';
 import type { WastePeriod } from '../options';
-import { wasteInPeriod } from '../wasteSeries';
 
 /**
  * ChartContainer already colours axis ticks with the project's secondary-text
@@ -37,6 +39,9 @@ const AXIS_TICK = {
 /** One chart per page, so a fixed gradient id is safe (as it was before). */
 const AREA_GRADIENT_ID = 'wasteAreaGradient';
 
+const CHART_STATE =
+  'mt-4 grid h-56 w-full place-items-center rounded border border-dashed border-border text-2xs text-muted-foreground max-sm:h-48';
+
 /** Stable period values; only the option labels are translated. */
 const PERIOD_KEYS: Record<WastePeriod, StringKey> = {
   'Last 30 days': 'waste.period.last30',
@@ -44,26 +49,77 @@ const PERIOD_KEYS: Record<WastePeriod, StringKey> = {
   'This year': 'waste.period.thisYear',
 };
 
-export default function WasteChart() {
-  const { t, formatNumber } = useI18n();
-  const [period, setPeriod] = useState<WastePeriod>(WASTE_PERIODS[0]);
+type FormatDate = (value: Date, options?: Intl.DateTimeFormatOptions) => string;
+
+/** Turn an API bucket (`2026-10-18` or `2026-10`) into a short axis label. */
+function bucketLabel(
+  bucket: string,
+  unit: HistoryBucket,
+  formatDate: FormatDate,
+): string {
+  if (unit === 'month') {
+    return formatDate(new Date(`${bucket}-01T00:00:00Z`), {
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+  }
+
+  return formatDate(new Date(`${bucket}T00:00:00Z`), {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+export interface WasteChartProps {
+  period: WastePeriod;
+  onPeriodChange: (period: WastePeriod) => void;
+  data: FillHistoryResponse | null;
+  loading: boolean;
+  error: ApiError | null;
+}
+
+/**
+ * Average bin fill level over time. The series is a percentage; it is never
+ * converted to weight. Only buckets that contain real ScanEvents are plotted.
+ */
+export default function WasteChart({
+  period,
+  onPeriodChange,
+  data,
+  loading,
+  error,
+}: WasteChartProps) {
+  const { t, formatNumber, formatDate } = useI18n();
 
   const chartConfig = {
-    kg: {
+    fillLevel: {
       label: t('waste.seriesLabel'),
       color: 'var(--color-chart-line)',
     },
   } satisfies ChartConfig;
 
-  // The period picks the points, and the line, its markers and the header total
-  // all read from that one selection.
-  const points = wasteInPeriod(period);
-  const totalKg = points.reduce((total, point) => total + point.kg, 0);
+  const points = data?.points ?? [];
+  const bucket = data?.bucket ?? 'day';
+
+  const chartPoints = points.map((point) => ({
+    label: bucketLabel(point.bucket, bucket, formatDate),
+    fillLevel: point.avgFillLevel,
+  }));
+
+  const samples = points.reduce((total, point) => total + point.sampleCount, 0);
+  const weightedTotal = points.reduce(
+    (total, point) => total + point.avgFillLevel * point.sampleCount,
+    0,
+  );
+  const average =
+    samples > 0 ? Math.round((weightedTotal / samples) * 10) / 10 : null;
 
   const handlePeriodChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const { value } = event.target;
     if (!isWastePeriod(value)) return;
-    setPeriod(value);
+    onPeriodChange(value);
     showSuccess(
       t('waste.updatedToast', { period: t(PERIOD_KEYS[value]).toLowerCase() }),
     );
@@ -80,10 +136,16 @@ export default function WasteChart() {
         </div>
         <div className="flex items-center gap-3">
           <span className="font-heading text-base font-semibold max-sm:hidden">
-            {formatNumber(totalKg)}{' '}
-            <small className="font-sans text-2xs font-normal text-label">
-              {t('waste.totalUnit')}
-            </small>
+            {average === null ? (
+              '—'
+            ) : (
+              <>
+                {formatNumber(average)}{' '}
+                <small className="font-sans text-2xs font-normal text-label">
+                  {t('waste.averageUnit')}
+                </small>
+              </>
+            )}
           </span>
           <select
             className="rounded border border-border bg-input p-2 text-2xs text-muted-foreground"
@@ -100,7 +162,11 @@ export default function WasteChart() {
         </div>
       </div>
 
-      {points.length > 0 ? (
+      {loading ? (
+        <p className={CHART_STATE}>{t('waste.loading')}</p>
+      ) : error ? (
+        <p className={CHART_STATE}>{t('waste.error')}</p>
+      ) : chartPoints.length > 0 ? (
         <ChartContainer
           config={chartConfig}
           className="mt-4 aspect-auto h-56 w-full max-sm:h-48"
@@ -109,7 +175,7 @@ export default function WasteChart() {
           dir="ltr"
         >
           <AreaChart
-            data={points}
+            data={chartPoints}
             margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
           >
             <defs>
@@ -121,20 +187,19 @@ export default function WasteChart() {
 
             <CartesianGrid vertical={false} stroke="var(--color-grid)" />
             <XAxis
-              dataKey="week"
+              dataKey="label"
               tickLine={false}
               axisLine={false}
               tickMargin={8}
+              minTickGap={24}
               tick={AXIS_TICK}
             />
             <YAxis
-              dataKey="kg"
+              dataKey="fillLevel"
               type="number"
-              domain={[0, 200]}
-              ticks={[0, 50, 100, 150, 200]}
-              tickFormatter={(value: number) =>
-                `${formatNumber(value)} ${t('metric.unit.kg')}`
-              }
+              domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
+              tickFormatter={(value: number) => `${formatNumber(value)}%`}
               tickLine={false}
               axisLine={false}
               width={52}
@@ -143,7 +208,7 @@ export default function WasteChart() {
             <ChartTooltip content={<ChartTooltipContent color="var(--color-chart-line)" />} />
 
             <Area
-              dataKey="kg"
+              dataKey="fillLevel"
               type="monotone"
               stroke="var(--color-chart-line)"
               strokeWidth={3}
@@ -157,28 +222,10 @@ export default function WasteChart() {
               }}
               isAnimationActive={false}
             />
-
-            {points
-              .filter((point) => point.emphasised)
-              .map((point) => (
-                <ReferenceDot
-                  key={point.week}
-                  x={point.week}
-                  y={point.kg}
-                  r={5}
-                  fill="var(--color-card)"
-                  stroke="var(--color-chart-line)"
-                  strokeWidth={3}
-                />
-              ))}
           </AreaChart>
         </ChartContainer>
       ) : (
-        // A window can outrun the snapshot (see `MOCK_NOW`): keep the panel's
-        // height and say so, rather than drawing axes with nothing in them.
-        <p className="mt-4 grid h-56 w-full place-items-center rounded border border-dashed border-border text-2xs text-muted-foreground max-sm:h-48">
-          {t('waste.empty')}
-        </p>
+        <p className={CHART_STATE}>{t('waste.empty')}</p>
       )}
     </article>
   );

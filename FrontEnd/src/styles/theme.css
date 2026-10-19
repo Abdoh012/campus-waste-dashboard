@@ -6,9 +6,9 @@
      2. Fonts                 — aliased to variables, not literal families (R10)
      3. Semantic aliases      — what components actually consume (R2)
 
-   There is no dark theme in this product, so no dark selector is defined; the
-   aliases below are still declared as real custom properties (plain @theme,
-   not @theme inline) so a dark layer could be added later without a rewrite.
+   The semantic aliases are declared as real custom properties (plain @theme,
+   not @theme inline) so the dark layer at the foot of this file can override
+   them by selector (`html.dark`) without touching a single component.
 
    Color provenance:
      * `exact`     — value taken directly from the original stylesheet.
@@ -249,6 +249,10 @@
   --color-sidebar-accent: #7ed5ad;
 
   /* Component accents with no generic semantic meaning */
+  /* The number sitting on a solid map marker: ink on the bright fills (green,
+     amber, red), which white would fail. Kept separate from `foreground`
+     because the dark theme flips `foreground` to a light ink. */
+  --color-marker-foreground: var(--color-neutral-900);
   --color-sun: #e6a54d; /* exact */
   --color-pill-foreground: #39765c; /* exact */
   --color-pill-border: #cae9d7; /* exact */
@@ -354,6 +358,107 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* ------------------------------------------------------------------
+   4. DARK THEME — overrides the semantic aliases for `html.dark`.
+      Raw scales (section 1) stay fixed; only this layer flips, so every
+      component that builds on the aliases re-themes for free. Values keep
+      the design's deep-pine canvas and the same brand greens.
+------------------------------------------------------------------- */
+html.dark {
+  color-scheme: dark;
+
+  /* Structural surfaces */
+  --color-background: #0d1a16;
+  --color-foreground: #e7f1eb;
+  --color-foreground-hover: #ffffff;
+  --color-card: #13241d;
+  --color-card-foreground: #e7f1eb;
+  --color-border: #24463a;
+  --color-input: #0f2019;
+  /* Field boundaries still need 3:1 against the dark card (WCAG 1.4.11). */
+  --color-input-border: #3a6b57;
+  --color-ring: var(--color-primary-400);
+  --color-muted: #16281f;
+  --color-muted-foreground: #a7bab1;
+
+  /* Text roles */
+  --color-eyebrow: #a7bab1;
+  --color-label: #b7c7bf;
+  --color-label-muted: #93a79e;
+  --color-label-subtle: #6f837a;
+  --color-label-strong: #d3ded7;
+
+  /* Brand */
+  --color-primary-foreground: #06201a;
+  --color-primary-tint: #17352a;
+  --color-primary-tint-border: #27543f;
+  --color-outline-border: #2f5f4a;
+  --color-primary-text: var(--color-primary-300);
+  --color-primary-hover: var(--color-primary-300);
+  --color-secondary-foreground: #2a1806;
+  --color-accent-foreground: #1d1428;
+  --color-info-foreground: #08121f;
+  --color-destructive-foreground: #200a07;
+
+  /* Utility states */
+  --color-success-bg: #12301f;
+  --color-success-fg: #86d5a8;
+  --color-warning-bg: #322612;
+  --color-warning-fg: #f0c979;
+  --color-error-bg: #351713;
+  --color-error-fg: #f0958a;
+  --color-info-bg: #16233a;
+  --color-info-fg: #9dbdf0;
+  --color-error-text: #f0a99f;
+
+  /* Navigation dock — lifted off the darker canvas so it still floats */
+  --color-sidebar: #17342b;
+  --color-sidebar-border: #2b4b3f;
+  --color-sidebar-hover: #1f463a;
+
+  /* Component accents */
+  --color-marker-foreground: var(--color-neutral-950);
+  --color-sun: #f1b465;
+  --color-pill-foreground: #9fd8bb;
+  --color-pill-border: #2b5a45;
+  --color-live: #5ecb92;
+  --color-live-halo: #1e4a37;
+  --color-icon-muted: #9fb3ab;
+  /* The export/sign-in action fills with `foreground`, so on dark it becomes a
+     light button — its text and arrow must therefore flip to ink. */
+  --color-export-foreground: #0b1a15;
+  --color-export-accent: #27765b;
+  --color-trend-neutral-bg: #1c2b25;
+  --color-trend-neutral-fg: #a7bab1;
+  --color-toast: #0f231c;
+  --color-toast-foreground: #eaf7ef;
+
+  /* Metric decorations */
+  --color-spark: #2f6b52;
+  --color-mini-bar: #7a5a2f;
+
+  /* Chart internals */
+  --color-axis: #7f948b;
+  --color-grid: #1d3229;
+  --color-chart-line: var(--color-primary-400);
+  --color-chart-area: var(--color-primary-500);
+  --color-bar: #23493a;
+  --color-bar-active: var(--color-primary-400);
+  --color-bar-grid: #1d3229;
+  --color-bar-border: #234439;
+
+  /* Offline sync banner */
+  --color-sync-border: #2f5a47;
+  --color-sync-bg: #12291f;
+  --color-sync-button: #2f8f6b;
+  --color-sync-button-hover: #3aa77d;
+
+  /* Elevation + native UI */
+  --shadow-card: 0 14px 34px rgba(0, 0, 0, 0.45);
+  --shadow-toast: 0 8px 30px rgba(0, 0, 0, 0.55);
+  --scrollbar-thumb: var(--color-primary-600);
 }
 
 @layer base {

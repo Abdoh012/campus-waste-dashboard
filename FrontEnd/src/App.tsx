@@ -4,6 +4,14 @@ import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import { Login } from "./features/auth/components/LoginForm";
 import { I18nProvider } from "./shared/i18n/I18nProvider";
+import { ThemeProvider } from "./shared/theme/ThemeProvider";
+import { useTheme } from "./shared/theme/useTheme";
+
+/** Keeps the notification stack in step with the active theme. */
+function ThemedToaster() {
+  const { theme } = useTheme();
+  return <Toaster theme={theme} />;
+}
 
 export default function App() {
   const router = createBrowserRouter([
@@ -18,10 +26,12 @@ export default function App() {
     },
   ]);
   return (
-    <I18nProvider>
-      <RouterProvider router={router} />
+    <ThemeProvider>
+      <I18nProvider>
+        <RouterProvider router={router} />
 
-      <Toaster />
-    </I18nProvider>
+        <ThemedToaster />
+      </I18nProvider>
+    </ThemeProvider>
   );
 }

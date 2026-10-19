@@ -1,31 +1,27 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   AdvancedMarker,
   APIProvider,
   Map,
   useMap,
-} from '@vis.gl/react-google-maps';
-import { SURFACE } from '../../../styles/surfaces';
-import { useI18n } from '../../../shared/i18n/useI18n';
-import type { ApiError } from '../../../services/apiClient';
-import {
-  MAP_ZOOM,
-  POPUP_PLACEMENT,
-  centerOf,
-} from '../campusMapData';
-import type { BinLocation } from '../campusMapData';
-import BinMarker from './BinMarker';
-import LocationPopup from './LocationPopup';
-import MapNotice from './MapNotice';
+} from "@vis.gl/react-google-maps";
+import { SURFACE } from "../../../styles/surfaces";
+import { useI18n } from "../../../shared/i18n/useI18n";
+import type { ApiError } from "../../../services/apiClient";
+import { MAP_ZOOM, POPUP_PLACEMENT } from "../campusMapData";
+import type { BinLocation } from "../campusMapData";
+import BinMarker from "./BinMarker";
+import LocationPopup from "./LocationPopup";
+import MapNotice from "./MapNotice";
 
 /** Inlined at build time; the map shows a setup notice when this is empty. */
-const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? '';
+const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
 
 /**
  * Advanced markers need a map ID. `DEMO_MAP_ID` is Google's documented
  * development id; set `VITE_GOOGLE_MAPS_MAP_ID` for a styled production map.
  */
-const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID';
+const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID";
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
@@ -42,13 +38,14 @@ export interface ActiveLocation {
 }
 
 export interface BinsMapProps {
-  mapTypeId: 'roadmap' | 'hybrid';
+  mapTypeId: "roadmap" | "hybrid";
   zoom: number;
   onZoomChange: (zoom: number) => void;
   active: ActiveLocation | null;
   onActiveChange: (active: ActiveLocation | null) => void;
   /** Live buildings from `GET /api/bins`, already grouped by `toBinLocations`. */
   locations: readonly BinLocation[];
+  center: { lat: number; lng: number };
   binsLoading: boolean;
   binsError: ApiError | null;
   onRetry: () => void;
@@ -71,7 +68,7 @@ function MapInstance({ onMap }: { onMap: (map: google.maps.Map) => void }) {
 }
 
 const RETRY_BUTTON =
-  'cursor-pointer rounded border border-border bg-card px-3 py-1.5 text-2xs font-medium text-foreground transition-colors duration-200 hover:bg-muted';
+  "cursor-pointer rounded border border-border bg-card px-3 py-1.5 text-2xs font-medium text-foreground transition-colors duration-200 hover:bg-muted";
 
 /**
  * The live Google map: one numbered, colour-coded marker per building, with a
@@ -86,6 +83,7 @@ export default function BinsMap({
   active,
   onActiveChange,
   locations,
+  center,
   binsLoading,
   binsError,
   onRetry,
@@ -98,10 +96,11 @@ export default function BinsMap({
   const popupRef = useRef<HTMLDivElement | null>(null);
   /** Location the map has already been nudged for, so it only ever nudges once. */
   const nudgedFor = useRef<string | null>(null);
+  /** Whether the camera has already been framed on the first batch of bins. */
+  const framedOnce = useRef(false);
 
-  const center = useMemo(() => centerOf(locations), [locations]);
   const activeLocation = active
-    ? locations.find((location) => location.id === active.id) ?? null
+    ? (locations.find((location) => location.id === active.id) ?? null)
     : null;
 
   /**
@@ -173,14 +172,17 @@ export default function BinsMap({
     };
 
     place();
-    const listener = map.addListener('bounds_changed', place);
+    const listener = map.addListener("bounds_changed", place);
     return () => listener.remove();
   }, [map, active, activeLocation]);
 
-  // Frame the live bins once the data and the map instance are both ready.
+  // Frame the live bins from `GET /api/bins` *once*, the first time both the
+  // map instance and the data are ready. The map opens on `center` (BATU); a
+  // later refresh or poll must never move the camera out from under the user.
   // A single bin keeps the designed zoom instead of Google's maximum.
   useEffect(() => {
-    if (!map || locations.length === 0) return;
+    if (!map || framedOnce.current || locations.length === 0) return;
+    framedOnce.current = true;
 
     if (locations.length === 1) {
       map.setCenter(locations[0].position);
@@ -197,8 +199,8 @@ export default function BinsMap({
     return (
       <MapNotice
         tone="config"
-        title={t('map.notice.missingKey.title')}
-        detail={t('map.notice.missingKey.detail')}
+        title={t("map.notice.missingKey.title")}
+        detail={t("map.notice.missingKey.detail")}
       />
     );
   }
@@ -207,8 +209,8 @@ export default function BinsMap({
     return (
       <MapNotice
         tone="error"
-        title={t('map.notice.error.title')}
-        detail={t('map.notice.error.detail')}
+        title={t("map.notice.error.title")}
+        detail={t("map.notice.error.detail")}
       />
     );
   }
@@ -217,8 +219,8 @@ export default function BinsMap({
     return (
       <MapNotice
         tone="loading"
-        title={t('map.notice.loading.title')}
-        detail={t('map.notice.loading.detail')}
+        title={t("map.notice.loading.title")}
+        detail={t("map.notice.loading.detail")}
       />
     );
   }
@@ -227,11 +229,11 @@ export default function BinsMap({
     return (
       <MapNotice
         tone="error"
-        title={t('map.notice.fetchError.title')}
-        detail={t('map.notice.fetchError.detail')}
+        title={t("map.notice.fetchError.title")}
+        detail={t("map.notice.fetchError.detail")}
         action={
           <button type="button" className={RETRY_BUTTON} onClick={onRetry}>
-            {t('map.notice.retry')}
+            {t("map.notice.retry")}
           </button>
         }
       />
@@ -242,11 +244,11 @@ export default function BinsMap({
     return (
       <MapNotice
         tone="empty"
-        title={t('map.notice.empty.title')}
-        detail={t('map.notice.empty.detail')}
+        title={t("map.notice.empty.title")}
+        detail={t("map.notice.empty.detail")}
         action={
           <button type="button" className={RETRY_BUTTON} onClick={onRetry}>
-            {t('map.notice.retry')}
+            {t("map.notice.retry")}
           </button>
         }
       />
@@ -280,20 +282,25 @@ export default function BinsMap({
             <AdvancedMarker
               key={location.id}
               position={location.position}
-              title={t('map.marker.title', {
-                number: location.number,
-                name: location.name,
-              })}
               clickable
               anchorLeft="-50%"
               anchorTop="-50%"
               onMouseEnter={() =>
                 onActiveChange({ id: location.id, pinned: false })
               }
-              onMouseLeave={() => onActiveChange(active?.pinned ? active : null)}
+              onMouseLeave={() =>
+                onActiveChange(active?.pinned ? active : null)
+              }
               onClick={() => onActiveChange({ id: location.id, pinned: true })}
             >
-              <BinMarker location={location} active={active?.id === location.id} />
+              <BinMarker
+                location={location}
+                active={active?.id === location.id}
+                title={t("map.marker.title", {
+                  number: location.number,
+                  name: location.name,
+                })}
+              />
             </AdvancedMarker>
           ))}
         </Map>
@@ -310,8 +317,8 @@ export default function BinsMap({
         {!loaded && (
           <MapNotice
             tone="loading"
-            title={t('map.notice.loading.title')}
-            detail={t('map.notice.loading.detail')}
+            title={t("map.notice.loading.title")}
+            detail={t("map.notice.loading.detail")}
             className="absolute inset-0"
           />
         )}

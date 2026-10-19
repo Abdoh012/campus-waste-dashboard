@@ -31,6 +31,30 @@
           document.documentElement.dir = 'ltr';
         }
       })();
+
+      // Apply the persisted theme before first paint, so a dark-mode visitor
+      // never sees a flash of light content. Keep the storage key in sync with
+      // shared/theme/theme.ts (THEME_STORAGE_KEY); `system` follows the OS.
+      (function () {
+        try {
+          var stored = window.localStorage.getItem('cw.theme');
+          var preference =
+            stored === 'light' || stored === 'dark' || stored === 'system'
+              ? stored
+              : 'system';
+          var dark =
+            preference === 'dark' ||
+            (preference === 'system' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var root = document.documentElement;
+          root.classList.toggle('dark', dark);
+          root.style.colorScheme = dark ? 'dark' : 'light';
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', dark ? '#0d1a16' : '#10251f');
+        } catch (error) {
+          /* Keep the light default. */
+        }
+      })();
     </script>
   </head>
   <body>

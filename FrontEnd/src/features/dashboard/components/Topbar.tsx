@@ -1,6 +1,7 @@
 import BrandLockup from '../../../shared/ui/BrandLockup';
 import Eyebrow from '../../../shared/ui/Eyebrow';
 import LanguageSwitcher from '../../../shared/ui/LanguageSwitcher';
+import ThemeSwitcher from '../../../shared/ui/ThemeSwitcher';
 import { showSuccess } from '../../../shared/ui/notifications';
 import { useI18n } from '../../../shared/i18n/useI18n';
 
@@ -34,6 +35,7 @@ export default function Topbar() {
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
+        <ThemeSwitcher />
         <LanguageSwitcher />
         <button
           className="cursor-pointer rounded-md border-0 bg-foreground px-3.5 py-2.5 text-xs text-export-foreground max-sm:p-2 max-sm:text-2xs"

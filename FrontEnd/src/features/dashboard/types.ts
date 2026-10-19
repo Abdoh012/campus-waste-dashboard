@@ -19,17 +19,6 @@ export interface NavItem {
   disabled?: boolean;
 }
 
-export interface DashboardSummary {
-  diversionRate: number;
-  wasteSortedKg: number;
-  pointsDistributed: number;
-  activeBins: number;
-  totalBins: number;
-  healthScore: number;
-  pendingSyncEvents: number;
-  registeredDevices: number;
-}
-
 /** The status the API reports for a bin, including the read-time offline override. */
 export type BinStatus = 'healthy' | 'attention' | 'critical' | 'offline';
 
@@ -47,30 +36,3 @@ export interface HardwareAlert {
   meta: string;
 }
 
-export interface PointsByDay {
-  day: string;
-  /** Bar height as a percentage of the chart's plot area (0–100). */
-  height: number;
-  /** Highlights the current day's bar. */
-  active?: boolean;
-}
-
-/**
- * One day of sorted waste — the waste chart's raw grain. A calendar day, not an
- * instant: date-only ISO strings carry no zone, so a bucket can never shift with
- * the reader's clock.
- */
-export interface WasteEntry {
-  /** The day it was recorded, ISO `YYYY-MM-DD`. */
-  date: string;
-  /** Kilograms sorted that day. */
-  kg: number;
-}
-
-/** One point of the waste chart's line, after a range's entries are bucketed. */
-export interface WasteSeriesPoint {
-  /** Axis label: `'Aug 26'` for a daily bucket, `'Aug'` for a monthly one. */
-  label: string;
-  /** Everything sorted in the bucket; 0 when nothing was recorded in it. */
-  kg: number;
-}

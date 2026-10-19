@@ -10,7 +10,7 @@ export const MAP_VIEWS = ['Campus view', 'Satellite'] as const;
 export type MapView = (typeof MAP_VIEWS)[number];
 
 export const WASTE_PERIODS = ['Last 30 days', 'Last 7 days', 'This year'] as const;
-/** The waste chart's period selector value; `wasteSeries.ts` owns its window. */
+/** The waste chart's period selector value; `DashboardPage` maps it to the API period. */
 export type WastePeriod = (typeof WASTE_PERIODS)[number];
 
 /** Narrows the `<select>`'s string value back to the option union. */

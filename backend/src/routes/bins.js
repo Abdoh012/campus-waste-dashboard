@@ -4,7 +4,10 @@ import { badRequest, notFound } from '../lib/errors.js';
 import { toBinDto, toIngestDto } from '../lib/dto.js';
 import { statusForFillLevel } from '../lib/status.js';
 import { Bin } from '../models/Bin.js';
+import { ScanEvent } from '../models/ScanEvent.js';
 import { requireAuth, requireDeviceKey } from '../middleware/auth.js';
+import { awardPoint } from '../lib/points.js';
+
 
 const router = Router();
 
@@ -31,7 +34,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 
 /**
  * PUT /api/bins/:deviceId/status (device ingest)
- *   body: { fillLevel, capturedAt }   — status is computed server-side
+ *   body: { fillLevel, capturedAt, studentId? } — status computed server-side
  *   200: { deviceId, fillLevel, status, lastSyncAt }
  *   400: { message } on invalid fillLevel / capturedAt
  *   404: { message: 'Device not found' }
@@ -39,7 +42,7 @@ router.get('/:id', requireAuth, async (req, res) => {
  */
 router.put('/:deviceId/status', requireDeviceKey, async (req, res) => {
   const deviceId = String(req.params.deviceId ?? '').trim();
-  const { fillLevel, capturedAt } = req.body ?? {};
+  const { fillLevel, capturedAt, studentId } = req.body ?? {};
 
   // fillLevel: number or numeric string; must land within 0–100.
   const fill =
@@ -75,8 +78,36 @@ router.put('/:deviceId/status', requireDeviceKey, async (req, res) => {
   ).lean();
 
   if (!updated) throw notFound('Device not found');
+  let pointsAwarded = false;
 
-  res.status(200).json(toIngestDto(updated));
+  if (typeof studentId === 'string' && studentId.trim() !== '') {
+    await awardPoint({
+      studentId: studentId.trim(),
+      deviceId,
+      fillLevel: fill,
+      capturedAt: syncedAt,
+    });
+
+    pointsAwarded = true;
+  }
+
+  // Append the raw reading to the scan history. Best-effort: the live status
+  // above has already landed, so a history failure is logged and swallowed —
+  // it must never fail (or change) the ingest response.
+  try {
+    await ScanEvent.create({
+      deviceId,
+      fillLevel: fill,
+      capturedAt: syncedAt,
+      ...(typeof studentId === 'string' && studentId.trim() !== ''
+        ? { studentId: studentId.trim() }
+        : {}),
+    });
+  } catch (err) {
+    console.error('[api] failed to record ScanEvent:', err);
+  }
+
+  res.status(200).json(toIngestDto(updated, { pointsAwarded }));
 });
 
 export default router;

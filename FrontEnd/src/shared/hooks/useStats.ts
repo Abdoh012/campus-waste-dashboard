@@ -1,10 +1,6 @@
 // shared/hooks/useStats.ts
 import { useEffect, useState } from "react";
-import {
-  API_BASE_URL,
-  getAuthToken,
-  isRecord,
-} from "../../services/apiClient";
+import { apiRequest, isRecord } from "../../services/apiClient";
 
 interface BinsSummary {
   total: number;
@@ -59,27 +55,23 @@ export function useStats() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
 
     async function fetchStats() {
       try {
-        const token = getAuthToken();
-        const res = await fetch(`${API_BASE_URL}/stats`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-
-        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-
-        const body: unknown = await res.json();
+        // Single source of truth: `apiRequest` reads `cw.token` and attaches
+        // the Authorization header (and clears it on a 401).
+        const body = await apiRequest("/stats", { signal: controller.signal });
         if (!isStats(body)) throw new Error("Unexpected stats response");
 
-        if (!cancelled) setStats(body);
+        if (controller.signal.aborted) return;
+        setStats(body);
+        setError(null);
       } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Unknown error");
-        }
+        if (controller.signal.aborted) return;
+        setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
 
@@ -87,7 +79,7 @@ export function useStats() {
     const interval = setInterval(fetchStats, 30000); // تحديث كل 30 ثانية
 
     return () => {
-      cancelled = true;
+      controller.abort();
       clearInterval(interval);
     };
   }, []);

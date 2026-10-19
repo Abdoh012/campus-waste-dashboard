@@ -38,7 +38,11 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function getAuthToken(): string | null {
   try {
-    return window.localStorage.getItem(TOKEN_KEY);
+    const token = window.localStorage.getItem(TOKEN_KEY);
+    // An older build could have written the literal string "undefined"/"null";
+    // sending that as `Bearer undefined` makes every request 401.
+    if (!token || token === 'undefined' || token === 'null') return null;
+    return token;
   } catch {
     return null;
   }

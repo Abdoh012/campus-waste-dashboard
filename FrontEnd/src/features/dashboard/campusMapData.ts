@@ -6,8 +6,8 @@
  * Map renders — markers and the location popup — reads from them.
  */
 
-import type { MapView } from './options';
-import type { BinStatus, BinTone } from './types';
+import type { MapView } from "./options";
+import type { BinStatus, BinTone } from "./types";
 
 /** A single waste bin at a mapped location. */
 export interface Bin {
@@ -36,17 +36,10 @@ export interface BinLocation {
   bins: readonly Bin[];
 }
 
-/**
- * Fallback map centre — Borg El Arab Technological University, Alexandria.
- * Live data normally provides its own centre (see `centerOf`); this only
- * applies before any placed bin exists.
- */
-export const CAMPUS_CENTER = { lat: 30.8577, lng: 29.5717 };
-
 /** The Google map type behind each configured map view. */
-export const MAP_TYPE_BY_VIEW: Record<MapView, 'roadmap' | 'hybrid'> = {
-  'Campus view': 'roadmap',
-  Satellite: 'hybrid',
+export const MAP_TYPE_BY_VIEW: Record<MapView, "roadmap" | "hybrid"> = {
+  "Campus view": "roadmap",
+  Satellite: "hybrid",
 };
 
 /** Initial zoom, plus the range the map's own zoom controls step within. */
@@ -69,14 +62,14 @@ export const FILL_THRESHOLDS = { attention: 50, critical: 75 } as const;
 
 /** The tone a single bin's fill level maps to. */
 export function fillTone(fill: number): BinTone {
-  if (fill >= FILL_THRESHOLDS.critical) return 'red';
-  if (fill >= FILL_THRESHOLDS.attention) return 'yellow';
-  return 'green';
+  if (fill >= FILL_THRESHOLDS.critical) return "red";
+  if (fill >= FILL_THRESHOLDS.attention) return "yellow";
+  return "green";
 }
 
 /** The tone a bin maps to: a silent device reads offline, whatever its fill. */
 export function binTone(bin: Bin): BinTone {
-  return bin.status === 'offline' ? 'offline' : fillTone(bin.fill);
+  return bin.status === "offline" ? "offline" : fillTone(bin.fill);
 }
 
 /** The fullest bin at a location — the value the popup footer quotes. */
@@ -101,25 +94,18 @@ export function locationTone(location: BinLocation): BinTone {
   return location.bins.reduce<BinTone>((worst, bin) => {
     const tone = binTone(bin);
     return TONE_SEVERITY[tone] > TONE_SEVERITY[worst] ? tone : worst;
-  }, 'offline');
+  }, "offline");
 }
 
-/** The average position of the given locations — the map's opening centre. */
-export function centerOf(
-  locations: readonly BinLocation[],
-): { lat: number; lng: number } {
-  if (locations.length === 0) return CAMPUS_CENTER;
-
-  const total = locations.reduce(
-    (sum, location) => ({
-      lat: sum.lat + location.position.lat,
-      lng: sum.lng + location.position.lng,
-    }),
-    { lat: 0, lng: 0 },
-  );
-
-  return {
-    lat: total.lat / locations.length,
-    lng: total.lng / locations.length,
-  };
-}
+/**
+ * Borg El Arab Technological University (BATU), Alexandria, Egypt — the map's
+ * fixed default centre. Resolved from Plus Code `VH5C+8H8`
+ * (30°51′30″N 29°34′17″E); Wikipedia lists BATU at 30.8577, 29.5717, ~70 m away.
+ *
+ * This is only the *opening* position: the live bins from `GET /api/bins` are
+ * framed on first load (see `BinsMap`).
+ */
+export const CAMPUS_CENTER = {
+  lat: 30.8583,
+  lng: 29.57144,
+};

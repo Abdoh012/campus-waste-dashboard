@@ -17,6 +17,16 @@ export interface BinMarkerProps {
   location: BinLocation;
   /** Set while this location's popup is open. */
   active?: boolean;
+  /**
+   * Tooltip / accessible name for the marker.
+   *
+   * It sits on this DOM node, *not* on the `<AdvancedMarker>`: that component
+   * writes a changed `title` straight onto the live Google marker, and the
+   * Maps setter throws once the marker is attached — which crashed the whole
+   * route whenever changing the language re-translated the title. A native
+   * `title` here shows the same tooltip and never touches the Maps API.
+   */
+  title?: string;
 }
 
 /**
@@ -24,11 +34,16 @@ export interface BinMarkerProps {
  * keeping its number in every colour state. The tone comes from the location's
  * most urgent bin (`locationTone`), never from a hardcoded colour.
  */
-export default function BinMarker({ location, active = false }: BinMarkerProps) {
+export default function BinMarker({
+  location,
+  active = false,
+  title,
+}: BinMarkerProps) {
   return (
     <span
+      title={title}
       className={[
-        'grid h-8 w-8 cursor-pointer place-items-center rounded-full border-2 border-white font-mono text-2xs font-semibold text-foreground shadow-card transition-transform duration-200 ease-out motion-reduce:transition-none',
+        'grid h-8 w-8 cursor-pointer place-items-center rounded-full border-2 border-white font-mono text-2xs font-semibold text-marker-foreground shadow-card transition-transform duration-200 ease-out motion-reduce:transition-none',
         MARKER_TONES[locationTone(location)],
         active ? 'scale-110' : 'hover:scale-110',
       ].join(' ')}

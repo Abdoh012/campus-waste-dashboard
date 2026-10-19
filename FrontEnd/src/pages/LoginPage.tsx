@@ -3,6 +3,7 @@ import LoginForm from '../features/auth/components/LoginForm';
 import BrandLockup from '../shared/ui/BrandLockup';
 import Eyebrow from '../shared/ui/Eyebrow';
 import LanguageSwitcher from '../shared/ui/LanguageSwitcher';
+import ThemeSwitcher from '../shared/ui/ThemeSwitcher';
 import { useI18n } from '../shared/i18n/useI18n';
 import { SURFACE } from '../styles/surfaces';
 
@@ -15,7 +16,8 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-dvh flex-col bg-background">
-      <div className="absolute end-4 top-4 z-10">
+      <div className="absolute end-4 top-4 z-10 flex items-center gap-2">
+        <ThemeSwitcher />
         <LanguageSwitcher />
       </div>
 

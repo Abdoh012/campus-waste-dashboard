@@ -2,14 +2,19 @@ import { useMemo } from "react";
 import StatCard from "../../../shared/ui/StatCard";
 import TrendBadge from "../../../shared/ui/TrendBadge";
 import { useI18n } from "../../../shared/i18n/useI18n";
-import { useStats } from "../../../shared/hooks/useStats";
+import type { Stats } from "../../../shared/hooks/useStats";
 import { buildMetricCards } from "../metricCards";
 
 const UNIT = "font-sans text-xs font-medium tracking-normal text-label";
 
-export default function MetricGrid() {
+export interface MetricGridProps {
+  stats: Stats | null;
+  loading: boolean;
+  error: string | null;
+}
+
+export default function MetricGrid({ stats, loading, error }: MetricGridProps) {
   const { t, tn, formatNumber } = useI18n();
-  const { stats, loading, error } = useStats();
 
   const cards = useMemo(
     () => (stats ? buildMetricCards(t, tn, formatNumber, stats) : []),
