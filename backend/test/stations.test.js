@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   CONNECTIVITIES,
+  CONTAINER_FIELDS,
   EXPECTED_CONTAINERS,
   connectivityFor,
   fillStatusForLevel,
@@ -246,6 +247,39 @@ describe('container material classification', () => {
   });
 });
 
+describe('station query projection', () => {
+  it('includes every field the container DTO reads (regression: wasteType)', () => {
+    const projected = new Set(CONTAINER_FIELDS.split(/\s+/).filter(Boolean));
+
+    for (const field of [
+      'deviceId',
+      'stationId',
+      'name',
+      'fillLevel',
+      'status',
+      'lastSyncAt',
+      'wasteType',
+    ]) {
+      assert.ok(projected.has(field), `query projection must include ${field}`);
+    }
+  });
+
+  it('keeps the stored material when a document is reduced to the projection', () => {
+    // Reproduces what `.lean()` + a Mongoose projection returns: only the
+    // selected fields survive. If `wasteType` is dropped, the DTO silently
+    // reports null instead of the stored value.
+    const fields = CONTAINER_FIELDS.split(/\s+/).filter(Boolean);
+    const selected = Object.fromEntries(
+      fields.map((field) => [field, CONTAINERS[0][field]]),
+    );
+
+    assert.equal(
+      toContainerDto(selected, { now: NOW, thresholdMs: THRESHOLD }).wasteType,
+      'paper',
+    );
+  });
+});
+
 describe('station aggregation', () => {
   it('station severity is the highest known fill, ignoring unknown', () => {
     const containers = CONTAINERS.map((bin) =>
@@ -356,6 +390,38 @@ describe('station and container KPI arithmetic', () => {
       onlinePct: 66.7,
       averageFill: 49,
     });
+  });
+
+  it('counts fill severity independently when every container has gone offline', () => {
+    // Task-2 regression: connectivity collapsing must not erase fill counts.
+    const stale = CONTAINERS.map((bin) =>
+      bin.lastSyncAt ? { ...bin, lastSyncAt: at(120) } : bin,
+    );
+
+    const summary = summarizeStationAndContainers(STATIONS, stale, {
+      now: NOW,
+      thresholdMs: THRESHOLD,
+    });
+
+    assert.deepEqual(summary.containers, {
+      total: 6,
+      healthy: 3,
+      attention: 1,
+      critical: 1,
+      unknown: 1,
+      online: 0,
+      offline: 5,
+      neverConnected: 1,
+      unassigned: 0,
+      orphaned: 0,
+      onlinePct: 0,
+      averageFill: 49,
+    });
+    assert.equal(summary.stations.online, 0);
+    assert.equal(summary.stations.partial, 0);
+    assert.equal(summary.stations.offline, 2);
+    assert.equal(summary.stations.attention, 1);
+    assert.equal(summary.stations.critical, 1);
   });
 
   it('counts incomplete stations separately and does not treat them as valid', () => {

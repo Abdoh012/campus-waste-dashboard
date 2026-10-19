@@ -29,7 +29,8 @@ export const ar: Catalog = {
 
     'topbar.greeting': 'صباح الخير، {campus}',
     'topbar.export': 'تصدير التقرير',
-    'topbar.exportToast': 'تم تجهيز تصدير التقرير · {file}',
+    'topbar.exportToast': 'تم تنزيل التقرير · {file}',
+    'topbar.exportError': 'تعذّر تصدير التقرير. يُرجى المحاولة مرة أخرى.',
 
     'nav.overview': 'نظرة عامة',
     'nav.campus-map': 'الخريطة',

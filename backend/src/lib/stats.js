@@ -8,6 +8,7 @@ import {
   FILL_STATUSES,
   CONNECTIVITIES,
   STATION_CONNECTIVITIES,
+  CONTAINER_FIELDS,
   groupBinsByStation,
   toContainerDto,
   toStationDto,
@@ -116,7 +117,7 @@ export function summarizeStationAndContainers(
 async function getStationAndContainerSummary(opts = {}) {
   const [stations, bins] = await Promise.all([
     Station.find().lean(),
-    Bin.find({}, 'deviceId stationId name fillLevel status lastSyncAt').lean(),
+    Bin.find({}, CONTAINER_FIELDS).lean(),
   ]);
 
   return summarizeStationAndContainers(stations, bins, opts);
@@ -135,7 +136,7 @@ export async function getOverviewStats(opts) {
 export async function getStationDtos({ now = Date.now(), thresholdMs = OFFLINE_THRESHOLD_MS } = {}) {
   const [stations, bins] = await Promise.all([
     Station.find().sort({ stationId: 1 }).lean(),
-    Bin.find({}, 'deviceId stationId name fillLevel status lastSyncAt').lean(),
+    Bin.find({}, CONTAINER_FIELDS).lean(),
   ]);
   const groups = groupBinsByStation(bins);
   return stations.map((station) =>

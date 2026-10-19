@@ -34,7 +34,8 @@ export const en = {
 
     "topbar.greeting": "Good morning, {campus}",
     "topbar.export": "Export report",
-    "topbar.exportToast": "Report export prepared · {file}",
+    "topbar.exportToast": "Report downloaded · {file}",
+    "topbar.exportError": "Could not export the report. Please try again.",
 
     "nav.overview": "Overview",
     "nav.campus-map": "Map",

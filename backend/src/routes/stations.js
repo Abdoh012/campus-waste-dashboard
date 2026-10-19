@@ -4,12 +4,10 @@ import { notFound } from '../lib/errors.js';
 import { Bin } from '../models/Bin.js';
 import { Station } from '../models/Station.js';
 import { getStationDtos } from '../lib/stats.js';
-import { toStationDto } from '../lib/stations.js';
+import { CONTAINER_FIELDS, toStationDto } from '../lib/stations.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
-
-const CONTAINER_FIELDS = 'deviceId stationId name fillLevel status lastSyncAt';
 
 /**
  * GET /api/stations (auth)

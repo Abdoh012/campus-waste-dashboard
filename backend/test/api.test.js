@@ -398,6 +398,15 @@ describe('Think Outside The Box API', { skip }, () => {
       library.containers.map((c) => c.wasteType).sort(),
       ['liquids', 'paper', 'plastic'],
     );
+
+    // The single-station endpoint shares the same projection; it must preserve
+    // the stored material classification too (regression: wasteType was null).
+    const detail = await call('/stations/STN-LIBRARY', { token });
+    assert.equal(detail.status, 200);
+    assert.deepEqual(
+      detail.data.containers.map((c) => c.wasteType).sort(),
+      ['liquids', 'paper', 'plastic'],
+    );
   });
 
   it('GET /api/stats separates station counts from container fill and connectivity', async () => {

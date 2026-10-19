@@ -46,6 +46,16 @@ export const STATION_CONNECTIVITIES = Object.freeze({
 /** The product invariant: a valid station has exactly this many containers. */
 export const EXPECTED_CONTAINERS = 3;
 
+/**
+ * Fields every container DTO reads. Query projections MUST include all of them:
+ * Mongoose silently drops anything omitted, so a field missing here (as
+ * `wasteType` once was) comes back from the API as the DTO's default instead of
+ * the stored value. Kept as the single source of truth for the `.find()`
+ * projections in this module's consumers.
+ */
+export const CONTAINER_FIELDS =
+  'deviceId stationId name fillLevel status lastSyncAt wasteType';
+
 /** Highest wins. `unknown` never beats a known severity. */
 const SEVERITY_RANK = Object.freeze({
   unknown: 0,

@@ -117,7 +117,7 @@ function isContainersSummary(value: unknown): value is ContainersSummary {
   );
 }
 
-function isStats(value: unknown): value is Stats {
+export function isStats(value: unknown): value is Stats {
   return (
     isRecord(value) &&
     isBinsSummary(value.bins) &&

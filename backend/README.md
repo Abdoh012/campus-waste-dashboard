@@ -259,6 +259,45 @@ The admin password is printed only when it was generated; when it comes from
 `SEED_ADMIN_PASSWORD` it is applied only at first creation and never printed.
 Log in with `admin@batu.edu.eg` and that password.
 
+### Rich demo history
+
+`scripts/demo-history.js` is a pure, deterministic 30-day fixture: five connected
+containers × 30 daily `ScanEvent`s (150 rows), five `STU-DEMO-*` students and 29
+awards, plus the exact KPI and chart aggregates it must produce. Awards map 1:1 to
+scans, so every student's `points` equals the sum of their `awards`.
+
+`scripts/demo-history-apply.js` writes that fixture against the current
+connection, scoped to the six demo device ids and the demo student ids. It updates
+only their live fill/sync state and replaces only their history and ledgers, so
+re-running is idempotent and never touches unrelated records. Use it in local
+development after `npm run seed`:
+
+```js
+import { applyDemoHistory, checkDemoHistory } from './scripts/demo-history-apply.js';
+await applyDemoHistory();
+await checkDemoHistory();
+```
+
+For the remote `CAMPUS` database there is a dedicated guarded one-off:
+
+```bash
+node scripts/seed-campus-demo.js --confirm-seed-campus
+```
+
+It refuses unless both `MONGODB_URI` and the connected database are exactly
+`CAMPUS`, all five expected collections exist, and the six demo bins are already
+present with their reviewed station/material assignment. It captures the single
+admin `_id` and password hash before and after (aborting on any change) and never
+drops a database or collection.
+
+Connectivity in the demo is wall-clock relative: a container reads `online` only
+for `OFFLINE_THRESHOLD_MINUTES` (default 5) after its `lastSyncAt`. Re-run the
+seed shortly before a demo to refresh the timestamps.
+
+The dashboard's **Export report** button downloads a CSV built client-side from
+`/api/stats`, `/api/stations`, `/api/stats/fill-history?period=last30` and
+`/api/stats/points-daily?period=last7`; it needs no extra endpoint or permission.
+
 Development with auto-restart:
 
 ```bash
@@ -349,13 +388,18 @@ backend/
 │       └── index.js       # /api mount + health
 ├── scripts/
 │   ├── assign-demo-stations.js  # safe dev association (dry-run default; conflict-aborting)
+│   ├── demo-history.js          # pure 30-day demo fixture + expected aggregates
+│   ├── demo-history-apply.js    # scoped, idempotent apply/verify for that fixture
 │   ├── demo-stations.js         # dev-only station fixture + mapping
+│   ├── seed-campus-demo.js      # guarded CAMPUS-only one-off for the rich demo
 │   ├── station-association.js   # pure conflict/plan logic for the association script
 │   ├── seed-plan.js             # pure "create only missing demo bins" planning
 │   └── seed.js                  # dev admin + demo stations/bins (additive by default)
 ├── test/
 │   ├── api.test.js        # contract integration tests (node:test)
 │   ├── db-target.test.js  # safe-target guards for scripts/tests
+│   ├── demo-history.test.js       # pure fixture + aggregate arithmetic
+│   ├── demo-history-apply.test.js # DB integration: apply, verify, idempotency
 │   ├── seed-plan.test.js  # seed preserves existing bins
 │   ├── station-association.test.js  # association conflict rules
 │   └── stations.test.js   # pure domain + KPI fixture tests
