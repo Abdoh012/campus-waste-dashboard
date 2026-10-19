@@ -23,15 +23,25 @@ import { statusForFillLevel } from '../src/lib/status.js';
 
 const MINUTE = 60_000;
 
-/** deviceId, position and a fill level per demo bin; `minutesAgo` ages lastSyncAt. */
+/**
+ * deviceId, position and a fill level per demo bin; `minutesAgo` ages lastSyncAt.
+ *
+ * DEMO positions: the six sample bins are placed on the Borg El Arab
+ * Technological University (BATU) campus, using the same centre as the
+ * dashboard map (`FrontEnd/src/features/dashboard/campusMapData.ts`:
+ * `CAMPUS_CENTER = { lat: 30.8583, lng: 29.57144 }`). The offsets below are a
+ * deterministic 3x2 grid roughly 100 m north/south and 115 m east/west of that
+ * centre. They are approximate DEMO locations, not surveyed physical bin
+ * installations; replace them with real device coordinates once available.
+ */
 const SAMPLE_BINS = [
-  { deviceId: 'ESP32-BIN-01', name: 'North Gate Bin', building: 'North Gate', lat: 31.2185, lng: 29.952, fillLevel: 18, minutesAgo: 2 },
-  { deviceId: 'ESP32-BIN-02', name: 'Science Hall Bin', building: 'Science Hall', lat: 31.217, lng: 29.9565, fillLevel: 54, minutesAgo: 1 },
-  { deviceId: 'ESP32-BIN-03', name: 'Student Union Bin', building: 'Student Union', lat: 31.2156, lng: 29.9553, fillLevel: 87, minutesAgo: 1 },
+  { deviceId: 'ESP32-BIN-01', name: 'North Gate Bin', building: 'North Gate', lat: 30.8574, lng: 29.57024, fillLevel: 18, minutesAgo: 2 },
+  { deviceId: 'ESP32-BIN-02', name: 'Science Hall Bin', building: 'Science Hall', lat: 30.8574, lng: 29.57144, fillLevel: 54, minutesAgo: 1 },
+  { deviceId: 'ESP32-BIN-03', name: 'Student Union Bin', building: 'Student Union', lat: 30.8574, lng: 29.57264, fillLevel: 87, minutesAgo: 1 },
   // Stale on purpose: older than OFFLINE_THRESHOLD_MINUTES → GET reports offline.
-  { deviceId: 'ESP32-BIN-04', name: 'Arts Center Bin', building: 'Arts Center', lat: 31.214, lng: 29.953, fillLevel: 21, minutesAgo: 45 },
-  { deviceId: 'ESP32-BIN-05', name: 'Rec Center Bin', building: 'Rec Center', lat: 31.2132, lng: 29.9575, fillLevel: 12, minutesAgo: 3 },
-  { deviceId: 'ESP32-BIN-06', name: 'Library Bin', building: 'Library', lat: 31.2163, lng: 29.959, fillLevel: 63, minutesAgo: 2 },
+  { deviceId: 'ESP32-BIN-04', name: 'Arts Center Bin', building: 'Arts Center', lat: 30.8592, lng: 29.57024, fillLevel: 21, minutesAgo: 45 },
+  { deviceId: 'ESP32-BIN-05', name: 'Rec Center Bin', building: 'Rec Center', lat: 30.8592, lng: 29.57144, fillLevel: 12, minutesAgo: 3 },
+  { deviceId: 'ESP32-BIN-06', name: 'Library Bin', building: 'Library', lat: 30.8592, lng: 29.57264, fillLevel: 63, minutesAgo: 2 },
 ];
 
 async function seedAdmin() {

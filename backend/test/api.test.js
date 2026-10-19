@@ -40,7 +40,7 @@ const BIN_FIXTURES = [
   {
     deviceId: 'TEST-BIN-01',
     name: 'Test North Gate',
-    location: { building: 'North Gate', lat: 31.2185, lng: 29.952 },
+    location: { building: 'North Gate', lat: 30.8574, lng: 29.57024 },
     fillLevel: 18,
     status: 'healthy',
     lastSyncAt: new Date(Date.now() - 60_000),
@@ -48,7 +48,7 @@ const BIN_FIXTURES = [
   {
     deviceId: 'TEST-BIN-02',
     name: 'Test Student Union',
-    location: { building: 'Student Union', lat: 31.2156, lng: 29.9553 },
+    location: { building: 'Student Union', lat: 30.8574, lng: 29.57264 },
     fillLevel: 87,
     status: 'critical',
     lastSyncAt: new Date(Date.now() - 30_000),
@@ -56,7 +56,7 @@ const BIN_FIXTURES = [
   {
     deviceId: 'TEST-BIN-03',
     name: 'Test Library',
-    location: { building: 'Library', lat: 31.2163, lng: 29.959 },
+    location: { building: 'Library', lat: 30.8592, lng: 29.57264 },
     fillLevel: 54,
     // Stored as attention, but 10 minutes silent with a 5-minute threshold:
     // GET must report it offline.

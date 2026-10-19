@@ -36,13 +36,16 @@ Bin list for the dashboard (stable order by `deviceId`).
     "_id": "671f2a1b9c4e8d0012a4f3b1",
     "deviceId": "ESP32-BIN-03",
     "name": "Student Union Bin",
-    "location": { "building": "Student Union", "lat": 31.2156, "lng": 29.9553 },
+    "location": { "building": "Student Union", "lat": 30.8574, "lng": 29.57264 },
     "fillLevel": 87,
     "status": "critical",
     "lastSyncAt": "2026-10-15T10:44:27.000Z"
   }
 ]
 ```
+
+The example coordinates are approximate **demo** positions on the BATU campus,
+not surveyed physical bin installations.
 
 ### `GET /api/bins/:id` — auth
 
