@@ -238,7 +238,7 @@ describe('Think Outside The Box API', { skip }, () => {
 
   /* --------------------------------------------------------- device ingest */
 
-  it('PUT /api/bins/:deviceId/status updates the bin and echoes { deviceId, fillLevel, status, lastSyncAt }', async () => {
+  it('PUT /api/bins/:deviceId/status updates the bin and echoes { deviceId, fillLevel, status, lastSyncAt, pointsAwarded }', async () => {
     // Recent capture — an old capturedAt would (correctly) read offline.
     const capturedAt = new Date(Date.now() - 60_000).toISOString();
     const { status, data } = await call('/bins/TEST-BIN-01/status', {
@@ -247,12 +247,13 @@ describe('Think Outside The Box API', { skip }, () => {
     });
 
     assert.equal(status, 200);
-    assert.deepEqual(Object.keys(data).sort(), ['deviceId', 'fillLevel', 'lastSyncAt', 'status']);
+    assert.deepEqual(Object.keys(data).sort(), ['deviceId', 'fillLevel', 'lastSyncAt', 'pointsAwarded', 'status']);
     assert.deepEqual(data, {
       deviceId: 'TEST-BIN-01',
       fillLevel: 87,
       status: 'critical',
       lastSyncAt: capturedAt,
+      pointsAwarded: false,
     });
 
     // The dashboard sees the new reading straight away.
