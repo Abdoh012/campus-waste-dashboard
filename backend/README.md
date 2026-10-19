@@ -36,16 +36,71 @@ Bin list for the dashboard (stable order by `deviceId`).
     "_id": "671f2a1b9c4e8d0012a4f3b1",
     "deviceId": "ESP32-BIN-03",
     "name": "Student Union Bin",
+    "stationId": "STN-NORTH",
+    "wasteType": "liquids",
     "location": { "building": "Student Union", "lat": 30.8574, "lng": 29.57264 },
     "fillLevel": 87,
     "status": "critical",
+    "fillStatus": "critical",
+    "connectivity": "online",
+    "lastKnown": false,
+    "isStale": false,
     "lastSyncAt": "2026-10-15T10:44:27.000Z"
   }
 ]
 ```
 
+`status` is the legacy field with the read-time offline override (kept for
+existing consumers). `fillStatus`, `connectivity`, `lastKnown` and `isStale`
+are the additive, truthful axes: an offline container keeps its `fillStatus`
+and reports `lastKnown: true` instead of being flattened to `offline`.
+`wasteType` is the optional material classification (`"paper"`, `"plastic"` or
+`"liquids"`); it is `null` for legacy or not-yet-classified containers and is
+never inferred from a device name or id.
+
 The example coordinates are approximate **demo** positions on the BATU campus,
 not surveyed physical bin installations.
+
+### `GET /api/stations` — auth
+
+One entry per physical station: its single authoritative location and its
+containers. Incomplete stations carry an explicit `integrity` report rather
+than being hidden.
+
+```json
+[
+  {
+    "_id": "671f2a1b9c4e8d0012a4f3b9",
+    "stationId": "STN-NORTH",
+    "name": "North Gate Station",
+    "location": { "building": "North Gate", "lat": 30.8574, "lng": 29.57024 },
+    "severity": "critical",
+    "connectivity": "partial",
+    "lastSyncAt": "2026-10-15T10:44:27.000Z",
+    "containers": [
+      {
+        "_id": "671f2a1b9c4e8d0012a4f3b1",
+        "deviceId": "ESP32-BIN-01",
+        "name": "North Gate · Paper",
+        "stationId": "STN-NORTH",
+        "wasteType": "paper",
+        "fillLevel": 87,
+        "fillStatus": "critical",
+        "connectivity": "offline",
+        "lastSyncAt": "2026-10-15T10:14:27.000Z",
+        "lastKnown": true,
+        "isStale": true
+      }
+    ],
+    "integrity": { "expected": 3, "actual": 3, "valid": true, "issues": [] }
+  }
+]
+```
+
+### `GET /api/stations/:stationId` — auth
+
+One station by its stable `stationId`; `404 { "message": "Station not found" }`
+otherwise.
 
 ### `GET /api/bins/:id` — auth
 
@@ -97,6 +152,90 @@ starts reporting again resumes its real status immediately.
 Thresholds live in `src/lib/status.js`; the read-time override is applied in
 `src/lib/dto.js`.
 
+## Stations, containers and connectivity
+
+The hardware contract verified from this repository is: **one reading per
+`deviceId` per request** (`PUT /api/bins/:deviceId/status`). There is no
+firmware or device documentation in the repository, so the physical
+arrangement of ESP32s is *not* established here. The model therefore keeps the
+existing device identity and adds a stable `stationId` grouping rather than
+inventing hardware identifiers.
+
+Architecture: a **`Station` document owns one authoritative location**; each
+`Bin` document is one independently monitored container that points at its
+station through `stationId`. A valid station has exactly three containers, but
+that invariant is enforced in the application/service layer (reported through
+`integrity`), **not** as a database constraint, so migration and partial data
+remain possible.
+
+Two independent axes are computed on read in `src/lib/stations.js`:
+
+| Axis | Values |
+| --- | --- |
+| Fill severity | `healthy` (<50), `attention` (50–74), `critical` (≥75), `unknown` |
+| Connectivity | `online`, `offline`, `never-connected` |
+
+- A stale container can be both `offline` **and** `critical`; its last known
+  severity is never erased.
+- A never-connected container has `fillLevel: null` and `fillStatus: unknown`
+  — it is never fabricated as 0% full.
+- Station severity is the highest known container severity (unknown values do
+  not contribute).
+- Station connectivity is `online` when all containers are online, `partial`
+  when some are, and `offline` when none are.
+- `GET /api/stats` adds `stations` and `containers` summaries while keeping the
+  legacy `bins` and `points` blocks for compatibility. Station severity and
+  connectivity counts only include valid stations; incomplete stations are
+  counted separately.
+
+### Material classification
+
+Each station is expected to hold three separately monitored containers: one
+`paper`, one `plastic` and one `liquids`. `wasteType` is an **optional field on
+the container document** (`models/Bin.js`), deliberately separate from the
+sensor reading. It is validated against the supported set
+(`src/lib/waste-types.js`) and exposed on both the container DTO and the legacy
+bin DTO. The ingest contract is unchanged: one request still updates one
+device's single `fillLevel`, and no material is inferred from a device name or
+id.
+
+`stationIntegrity` treats classification as follows:
+
+- A fully unclassified **legacy** station (all `wasteType: null`) stays
+  structurally valid, so old records do not disappear from station KPIs.
+- Once any container is classified, the station is expected to have exactly one
+  of each material. Missing materials are reported as `missing-waste-type` and
+  duplicates as `duplicate-waste-type`, making the station `valid: false`.
+- An explicitly unsupported value is reported as `invalid-waste-type` and is
+  normalised to `null` in DTOs rather than being silently classified.
+
+Historical `ScanEvent` and `Student.awards` records keep their `deviceId`;
+`stationId` is an optional additive field on both, so no backfill is required.
+
+### Development-only station association
+
+The real device-to-station and device-to-material mapping is unknown, so the six
+seeded demo bins are **not** assigned automatically. Two illustrative demo
+stations (`STN-NORTH`, `STN-LIBRARY`) and an explicit six-device fixture — one
+`paper`, one `plastic` and one `liquids` per station — live in
+`scripts/demo-stations.js` for local development and tests only.
+
+```bash
+node scripts/assign-demo-stations.js          # dry run — prints the plan, writes nothing
+node scripts/assign-demo-stations.js --apply  # creates missing stations + fills missing stationId/wasteType
+```
+
+The script is idempotent, never creates bins, and never touches fill levels,
+statuses, history or student data. Before writing it refuses to run unless
+`MONGODB_URI` names a single **local** (`127.0.0.1` / `localhost` / `::1`)
+development database and `NODE_ENV` is not production-like (a missing
+`NODE_ENV` is not treated as proof of safety). It also aborts, changing
+nothing, if a target station already exists with a different name/location, a
+target bin is already assigned to a different station, or a bin already carries
+a different non-null `wasteType` — it will not overwrite real metadata, move a
+container between stations, or reclassify a container. Re-running a seed script
+against a database that already has the demo records is a no-op.
+
 ## Installation
 
 Prerequisites: Node.js ≥ 20.19, npm ≥ 10, a running MongoDB (v7 tested).
@@ -105,12 +244,20 @@ Prerequisites: Node.js ≥ 20.19, npm ≥ 10, a running MongoDB (v7 tested).
 cd backend
 npm install
 cp .env.example .env       # then edit — at minimum set JWT_SECRET
-npm run seed               # creates the admin + six sample bins
+npm run seed               # creates missing admin/stations/containers; never overwrites
 npm start                  # API on http://localhost:5000/api
 ```
 
-The seed prints the admin password (generated unless `SEED_ADMIN_PASSWORD`
-is set) — log in with `admin@batu.edu.eg` / that password.
+`npm run seed` is additive: it creates only records that are missing, so
+existing bins keep their readings, coordinates, station associations and
+material classifications. An existing admin password is never re-hashed. `npm run seed -- --reset` deletes
+**only** the six demo device ids and recreates them; no other bin is touched.
+The script refuses to run unless `MONGODB_URI` is a single local development
+host (see `src/lib/db-target.js`).
+
+The admin password is printed only when it was generated; when it comes from
+`SEED_ADMIN_PASSWORD` it is applied only at first creation and never printed.
+Log in with `admin@batu.edu.eg` and that password.
 
 Development with auto-restart:
 
@@ -136,10 +283,13 @@ All optional in development (working defaults); see `.env.example`.
 ## Tests
 
 Integration tests cover the full contract (login, auth guard, bin shapes,
-offline override, ingest validation, CORS preflight). They need a MongoDB —
-they run against `TEST_MONGODB_URI`
+offline override, ingest validation, CORS preflight, station grouping, station
+and container KPIs, and history still working after station association).
+They need a MongoDB — they run against `TEST_MONGODB_URI`
 (default `mongodb://127.0.0.1:27017/campus_waste_test`, dropped afterwards)
-and **skip with an explanation** if none is reachable.
+and **skip with an explanation** if none is reachable. The station/container
+domain and KPI arithmetic are also covered by database-free unit tests with a
+controlled clock (`test/stations.test.js`).
 
 ```bash
 npm test
@@ -178,17 +328,35 @@ backend/
 │   ├── lib/
 │   │   ├── dto.js         # exact response shapes (+ offline override)
 │   │   ├── errors.js      # ApiError → { message } middleware contract
-│   │   └── status.js      # fill→status rules, staleness, ISO helpers
+│   │   ├── points.js      # atomic Student.awards ledger
+│   │   ├── stats.js       # bin/point/station/container summaries
+│   │   ├── stations.js    # station/container domain rules + DTOs
+│   │   ├── status.js      # fill→status rules, staleness, ISO helpers
+│   │   └── waste-types.js # supported container materials + validation
 │   ├── middleware/
 │   │   ├── auth.js        # JWT bearer guard + optional device key
 │   │   └── error.js       # 404 + central { message } error renderer
 │   ├── models/
-│   │   ├── Bin.js         # deviceId, location, fillLevel, status, lastSyncAt
+│   │   ├── Bin.js         # container: deviceId, stationId, wasteType, fillLevel, status
+│   │   ├── ScanEvent.js   # per-device scan history
+│   │   ├── Station.js     # station: stationId, name, authoritative location
+│   │   ├── Student.js     # points balance + embedded awards ledger
 │   │   └── User.js        # operator credentials
 │   └── routes/
 │       ├── auth.js        # POST /login
 │       ├── bins.js        # GET /, GET /:id, PUT /:deviceId/status
+│       ├── stations.js    # GET /, GET /:stationId
 │       └── index.js       # /api mount + health
-├── scripts/seed.js        # dev admin + sample bins (idempotent)
-└── test/api.test.js       # contract integration tests (node:test)
+├── scripts/
+│   ├── assign-demo-stations.js  # safe dev association (dry-run default; conflict-aborting)
+│   ├── demo-stations.js         # dev-only station fixture + mapping
+│   ├── station-association.js   # pure conflict/plan logic for the association script
+│   ├── seed-plan.js             # pure "create only missing demo bins" planning
+│   └── seed.js                  # dev admin + demo stations/bins (additive by default)
+├── test/
+│   ├── api.test.js        # contract integration tests (node:test)
+│   ├── db-target.test.js  # safe-target guards for scripts/tests
+│   ├── seed-plan.test.js  # seed preserves existing bins
+│   ├── station-association.test.js  # association conflict rules
+│   └── stations.test.js   # pure domain + KPI fixture tests
 ```

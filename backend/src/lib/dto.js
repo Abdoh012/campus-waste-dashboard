@@ -1,4 +1,12 @@
 import { isOffline, toIso } from './status.js';
+import { normalisedWasteType } from './waste-types.js';
+import {
+  CONNECTIVITIES,
+  FILL_STATUSES,
+  connectivityFor,
+  fillStatusForLevel,
+  normalisedFillLevel,
+} from './stations.js';
 
 /**
  * Response shapes — the exact contracts the frontend consumes.
@@ -14,19 +22,32 @@ import { isOffline, toIso } from './status.js';
 /** List/detail DTO: exactly the documented fields, offline override applied. */
 export function toBinDto(bin, { detail = false, thresholdMs } = {}) {
   const offline = isOffline(bin.lastSyncAt, { thresholdMs });
+  const fillLevel = normalisedFillLevel(bin.fillLevel);
+  const fillStatus = fillStatusForLevel(fillLevel);
+  const connectivity = connectivityFor(bin.lastSyncAt, { thresholdMs });
+  const lastKnown =
+    connectivity !== CONNECTIVITIES.ONLINE && fillStatus !== FILL_STATUSES.UNKNOWN;
 
   const dto = {
     _id: String(bin._id),
     deviceId: bin.deviceId,
     name: bin.name,
+    stationId: bin.stationId ?? null,
+    // Null for legacy/unclassified containers; never inferred.
+    wasteType: normalisedWasteType(bin.wasteType),
     location: {
       building: bin.location?.building ?? '',
       lat: bin.location?.lat ?? null,
       lng: bin.location?.lng ?? null,
     },
-    fillLevel: bin.fillLevel ?? 0,
-    // A silent device reads offline; otherwise the stored fill-derived status.
+    // Legacy, connectivity-overridden status (kept for existing consumers).
+    fillLevel,
     status: offline ? 'offline' : bin.status,
+    // Independent, truthful axes. Connectivity never erases fill severity.
+    fillStatus,
+    connectivity,
+    lastKnown,
+    isStale: connectivity === CONNECTIVITIES.OFFLINE,
     lastSyncAt: toIso(bin.lastSyncAt),
   };
 

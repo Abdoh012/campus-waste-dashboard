@@ -8,6 +8,8 @@ const awardSchema = new mongoose.Schema(
   {
     at: { type: Date, required: true },
     deviceId: { type: String, required: true, trim: true },
+    // Additive, optional; older awards simply have no stationId.
+    stationId: { type: String, trim: true },
     fillLevel: { type: Number, required: true, min: 0, max: 100 },
     capturedAt: { type: Date, required: true },
     /** Points awarded by this event; the ledger sums this, not an assumed 1. */

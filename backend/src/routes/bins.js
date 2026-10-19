@@ -5,6 +5,7 @@ import { toBinDto, toIngestDto } from '../lib/dto.js';
 import { statusForFillLevel } from '../lib/status.js';
 import { Bin } from '../models/Bin.js';
 import { ScanEvent } from '../models/ScanEvent.js';
+import { Station } from '../models/Station.js';
 import { requireAuth, requireDeviceKey } from '../middleware/auth.js';
 import { awardPoint } from '../lib/points.js';
 
@@ -65,6 +66,19 @@ router.put('/:deviceId/status', requireDeviceKey, async (req, res) => {
     }
   }
 
+  // Validate the device (and its station, when one is associated) before any
+  // write, so a bad association can never partially update live state.
+  const existing = await Bin.findOne({ deviceId }).select('stationId').lean();
+  if (!existing) throw notFound('Device not found');
+  if (
+    existing.stationId &&
+    !(await Station.exists({ stationId: existing.stationId }))
+  ) {
+    throw badRequest(
+      `Device is associated with an unknown station (${existing.stationId})`,
+    );
+  }
+
   const updated = await Bin.findOneAndUpdate(
     { deviceId },
     {
@@ -84,6 +98,7 @@ router.put('/:deviceId/status', requireDeviceKey, async (req, res) => {
     await awardPoint({
       studentId: studentId.trim(),
       deviceId,
+      stationId: updated.stationId ?? undefined,
       fillLevel: fill,
       capturedAt: syncedAt,
     });
@@ -97,6 +112,7 @@ router.put('/:deviceId/status', requireDeviceKey, async (req, res) => {
   try {
     await ScanEvent.create({
       deviceId,
+      ...(updated.stationId ? { stationId: updated.stationId } : {}),
       fillLevel: fill,
       capturedAt: syncedAt,
       ...(typeof studentId === 'string' && studentId.trim() !== ''

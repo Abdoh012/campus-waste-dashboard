@@ -6,6 +6,12 @@
  * dropped afterwards). If MongoDB is unreachable the whole suite skips with
  * an explanation rather than failing.
  *
+ * Safety: these tests call `dropDatabase()`, so `TEST_MONGODB_URI` is validated
+ * *before* connecting. If it does not name a single local database ending in
+ * `_test`/`_tests`, the suite fails closed instead of dropping data — a mistyped
+ * URI must never reach the application's own `campus_waste` database. See
+ * `src/lib/db-target.js`.
+ *
  *   npm test
  */
 
@@ -16,11 +22,23 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { createApp } from '../src/app.js';
 import { env } from '../src/env.js';
+import { assertSafeTestTarget } from '../src/lib/db-target.js';
 import { User } from '../src/models/User.js';
 import { Bin } from '../src/models/Bin.js';
+import { Station } from '../src/models/Station.js';
+import { Student } from '../src/models/Student.js';
+import { ScanEvent } from '../src/models/ScanEvent.js';
 
 const TEST_MONGODB_URI =
   process.env.TEST_MONGODB_URI ?? 'mongodb://127.0.0.1:27017/campus_waste_test';
+
+// Fail closed: a bad TEST_MONGODB_URI stops the suite before any connection or
+// dropDatabase call, rather than silently pointing destructive tests elsewhere.
+assertSafeTestTarget({
+  uri: TEST_MONGODB_URI,
+  nodeEnv: process.env.NODE_ENV,
+  scriptName: 'backend integration tests (TEST_MONGODB_URI)',
+});
 
 let connected = true;
 try {
@@ -40,6 +58,7 @@ const BIN_FIXTURES = [
   {
     deviceId: 'TEST-BIN-01',
     name: 'Test North Gate',
+    wasteType: 'paper',
     location: { building: 'North Gate', lat: 30.8574, lng: 29.57024 },
     fillLevel: 18,
     status: 'healthy',
@@ -67,12 +86,89 @@ const BIN_FIXTURES = [
 
 const LIST_FIELDS = [
   '_id',
+  'connectivity',
   'deviceId',
   'fillLevel',
+  'fillStatus',
+  'isStale',
+  'lastKnown',
   'lastSyncAt',
   'location',
   'name',
+  'stationId',
   'status',
+  'wasteType',
+].sort();
+
+const STATION_FIXTURES = [
+  {
+    stationId: 'STN-NORTH',
+    name: 'North Gate (test)',
+    location: { building: 'North Gate', lat: 30.8574, lng: 29.57024 },
+  },
+  {
+    stationId: 'STN-LIBRARY',
+    name: 'Library (test)',
+    location: { building: 'Library', lat: 30.8592, lng: 29.57264 },
+  },
+];
+
+/** Two stations × three containers; synthetic identifiers, not real hardware. */
+const STATION_CONTAINER_FIXTURES = [
+  {
+    deviceId: 'ESP32-A1',
+    name: 'A1',
+    stationId: 'STN-NORTH',
+    wasteType: 'paper',
+    fillLevel: 18,
+    status: 'healthy',
+    lastSyncAt: new Date(Date.now() - 60_000),
+  },
+  {
+    deviceId: 'ESP32-A2',
+    name: 'A2',
+    stationId: 'STN-NORTH',
+    wasteType: 'plastic',
+    fillLevel: 62,
+    status: 'attention',
+    lastSyncAt: new Date(Date.now() - 60_000),
+  },
+  {
+    deviceId: 'ESP32-A3',
+    name: 'A3',
+    stationId: 'STN-NORTH',
+    wasteType: 'liquids',
+    fillLevel: 47,
+    status: 'healthy',
+    lastSyncAt: new Date(Date.now() - 120_000),
+  },
+  {
+    deviceId: 'ESP32-B1',
+    name: 'B1',
+    stationId: 'STN-LIBRARY',
+    wasteType: 'paper',
+    fillLevel: 88,
+    status: 'critical',
+    lastSyncAt: new Date(Date.now() - 30 * 60_000),
+  },
+  {
+    deviceId: 'ESP32-B2',
+    name: 'B2',
+    stationId: 'STN-LIBRARY',
+    wasteType: 'plastic',
+    fillLevel: null,
+    status: 'healthy',
+    lastSyncAt: null,
+  },
+  {
+    deviceId: 'ESP32-B3',
+    name: 'B3',
+    stationId: 'STN-LIBRARY',
+    wasteType: 'liquids',
+    fillLevel: 30,
+    status: 'healthy',
+    lastSyncAt: new Date(Date.now() - 60_000),
+  },
 ];
 
 describe('Think Outside The Box API', { skip }, () => {
@@ -98,9 +194,26 @@ describe('Think Outside The Box API', { skip }, () => {
     return { status: response.status, data, headers: response.headers };
   }
 
-  async function resetBins() {
-    await Bin.deleteMany({});
+  async function resetData() {
+    await Promise.all([
+      Bin.deleteMany({}),
+      Station.deleteMany({}),
+      Student.deleteMany({}),
+      ScanEvent.deleteMany({}),
+    ]);
     await Bin.insertMany(BIN_FIXTURES.map((bin) => ({ ...bin })));
+  }
+
+  /** Isolated station fixtures for station/KPI/history tests. */
+  async function resetStationFixtures() {
+    await Promise.all([
+      Bin.deleteMany({}),
+      Station.deleteMany({}),
+      Student.deleteMany({}),
+      ScanEvent.deleteMany({}),
+    ]);
+    await Station.insertMany(STATION_FIXTURES.map((station) => ({ ...station })));
+    await Bin.insertMany(STATION_CONTAINER_FIXTURES.map((bin) => ({ ...bin })));
   }
 
   before(async () => {
@@ -109,7 +222,7 @@ describe('Think Outside The Box API', { skip }, () => {
       email: ADMIN.email,
       passwordHash: await bcrypt.hash(ADMIN.password, 10),
     });
-    await resetBins();
+    await resetData();
 
     const app = createApp();
     await new Promise((resolve, reject) => {
@@ -123,7 +236,7 @@ describe('Think Outside The Box API', { skip }, () => {
     token = login.data.token;
   });
 
-  beforeEach(resetBins);
+  beforeEach(resetData);
 
   after(async () => {
     if (!connected) return;
@@ -206,6 +319,10 @@ describe('Think Outside The Box API', { skip }, () => {
       assert.equal(typeof bin._id, 'string');
       assert.match(bin.lastSyncAt, /^\d{4}-\d{2}-\d{2}T.*Z$/);
       assert.ok(['healthy', 'attention', 'critical', 'offline'].includes(bin.status));
+      assert.ok(
+        bin.wasteType === null ||
+          ['paper', 'plastic', 'liquids'].includes(bin.wasteType),
+      );
     }
   });
 
@@ -236,7 +353,188 @@ describe('Think Outside The Box API', { skip }, () => {
     assert.deepEqual(malformed.data, { message: 'Bin not found' });
   });
 
+  /* ------------------------------------------------------- stations read */
+
+  it('GET /api/stations returns one entry per station with three containers', async () => {
+    await resetStationFixtures();
+
+    const { status, data } = await call('/stations', { token });
+    assert.equal(status, 200);
+    assert.equal(data.length, 2);
+
+    const north = data.find((station) => station.stationId === 'STN-NORTH');
+    const library = data.find((station) => station.stationId === 'STN-LIBRARY');
+    assert.ok(north && library);
+    assert.equal(north.containers.length, 3);
+    assert.equal(library.containers.length, 3);
+    assert.deepEqual(Object.keys(library.location).sort(), ['building', 'lat', 'lng']);
+
+    // Station severity is the highest container severity, independent of
+    // connectivity; an offline critical reading stays critical.
+    assert.equal(north.severity, 'attention');
+    assert.equal(north.connectivity, 'online');
+    assert.equal(north.integrity.valid, true);
+    assert.equal(library.severity, 'critical');
+    assert.equal(library.connectivity, 'partial');
+
+    const b1 = library.containers.find((c) => c.deviceId === 'ESP32-B1');
+    assert.equal(b1.fillStatus, 'critical');
+    assert.equal(b1.connectivity, 'offline');
+    assert.equal(b1.lastKnown, true);
+    assert.equal(b1.isStale, true);
+
+    const b2 = library.containers.find((c) => c.deviceId === 'ESP32-B2');
+    assert.equal(b2.fillLevel, null);
+    assert.equal(b2.fillStatus, 'unknown');
+    assert.equal(b2.connectivity, 'never-connected');
+    assert.equal(b2.lastKnown, false);
+
+    // Each station exposes exactly one paper, plastic and liquids container.
+    assert.deepEqual(
+      north.containers.map((c) => c.wasteType).sort(),
+      ['liquids', 'paper', 'plastic'],
+    );
+    assert.deepEqual(
+      library.containers.map((c) => c.wasteType).sort(),
+      ['liquids', 'paper', 'plastic'],
+    );
+  });
+
+  it('GET /api/stats separates station counts from container fill and connectivity', async () => {
+    await resetStationFixtures();
+
+    const { status, data } = await call('/stats', { token });
+    assert.equal(status, 200);
+    assert.deepEqual(data.stations, {
+      total: 2,
+      valid: 2,
+      incomplete: 0,
+      healthy: 0,
+      attention: 1,
+      critical: 1,
+      unknown: 0,
+      online: 1,
+      partial: 1,
+      offline: 0,
+      fullyConnectedPct: 50,
+    });
+    assert.deepEqual(data.containers, {
+      total: 6,
+      healthy: 3,
+      attention: 1,
+      critical: 1,
+      unknown: 1,
+      online: 4,
+      offline: 1,
+      neverConnected: 1,
+      unassigned: 0,
+      orphaned: 0,
+      onlinePct: 66.7,
+      averageFill: 49,
+    });
+  });
+
+  it('reports incomplete stations explicitly instead of accepting them as valid', async () => {
+    await Bin.deleteMany({});
+    await Station.deleteMany({});
+    await Station.create({
+      stationId: 'STN-PARTIAL',
+      name: 'Partial (test)',
+      location: { building: 'X', lat: 30.8583, lng: 29.57144 },
+    });
+    await Bin.create({
+      deviceId: 'ESP32-PARTIAL-1',
+      name: 'P1',
+      stationId: 'STN-PARTIAL',
+      fillLevel: 10,
+      status: 'healthy',
+      lastSyncAt: new Date(),
+    });
+
+    const stations = await call('/stations', { token });
+    const partial = stations.data.find((s) => s.stationId === 'STN-PARTIAL');
+    assert.equal(partial.integrity.valid, false);
+    assert.equal(partial.integrity.actual, 1);
+    assert.equal(partial.integrity.expected, 3);
+
+    const stats = await call('/stats', { token });
+    assert.equal(stats.data.stations.total, 1);
+    assert.equal(stats.data.stations.valid, 0);
+    assert.equal(stats.data.stations.incomplete, 1);
+  });
+
+  it('GET /api/stations requires a bearer token', async () => {
+    const anonymous = await call('/stations');
+    assert.equal(anonymous.status, 401);
+  });
+
   /* --------------------------------------------------------- device ingest */
+
+  it('ingest preserves the container station association and rejects unknown stations', async () => {
+    await resetStationFixtures();
+
+    const capturedAt = new Date(Date.now() - 60_000).toISOString();
+    const ok = await call('/bins/ESP32-A1/status', {
+      method: 'PUT',
+      body: { fillLevel: 80, capturedAt, studentId: 'STU-STATION' },
+    });
+    assert.equal(ok.status, 200);
+
+    const stored = await Bin.findOne({ deviceId: 'ESP32-A1' }).lean();
+    assert.equal(stored.stationId, 'STN-NORTH');
+
+    // A broken association refuses the write instead of silently persisting.
+    await Bin.updateOne({ deviceId: 'ESP32-A1' }, { $set: { stationId: 'STN-MISSING' } });
+    const broken = await call('/bins/ESP32-A1/status', {
+      method: 'PUT',
+      body: { fillLevel: 10 },
+    });
+    assert.equal(broken.status, 400);
+    assert.match(broken.data.message, /unknown station/);
+  });
+
+  it('fill history and daily points still work with station-associated ingest', async () => {
+    await resetStationFixtures();
+
+    await call('/bins/ESP32-A1/status', {
+      method: 'PUT',
+      body: { fillLevel: 80, studentId: 'STU-HISTORY' },
+    });
+
+    const fill = await call('/stats/fill-history?period=last7', { token });
+    assert.equal(fill.status, 200);
+    assert.equal(fill.data.points.length, 1);
+    assert.equal(fill.data.points[0].avgFillLevel, 80);
+
+    const points = await call('/stats/points-daily?period=last7', { token });
+    assert.equal(points.status, 200);
+    assert.equal(points.data.points.length, 1);
+    assert.equal(points.data.points[0].points, 1);
+
+    const scan = await ScanEvent.findOne({ deviceId: 'ESP32-A1' }).lean();
+    assert.equal(scan.stationId, 'STN-NORTH');
+  });
+
+  it('documents that repeated device messages are not deduplicated', async () => {
+    await resetStationFixtures();
+
+    // The current device contract has no event/message id, so the server cannot
+    // distinguish a retry from a real second scan. This test pins the current
+    // behaviour; it is NOT a claim that duplicate points are desirable.
+    const capturedAt = new Date(Date.now() - 60_000).toISOString();
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await call('/bins/ESP32-A1/status', {
+        method: 'PUT',
+        body: { fillLevel: 80, capturedAt, studentId: 'STU-DUPLICATE' },
+      });
+      assert.equal(response.status, 200);
+    }
+
+    const student = await Student.findOne({ studentId: 'STU-DUPLICATE' }).lean();
+    assert.equal(student.points, 2);
+    assert.equal(student.awards.length, 2);
+    assert.equal(await ScanEvent.countDocuments({ deviceId: 'ESP32-A1' }), 2);
+  });
 
   it('PUT /api/bins/:deviceId/status updates the bin and echoes { deviceId, fillLevel, status, lastSyncAt, pointsAwarded }', async () => {
     // Recent capture — an old capturedAt would (correctly) read offline.

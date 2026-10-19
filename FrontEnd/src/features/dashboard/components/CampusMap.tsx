@@ -5,7 +5,7 @@ import { showInfo, showSuccess } from "../../../shared/ui/notifications";
 import { SURFACE } from "../../../styles/surfaces";
 import { useI18n } from "../../../shared/i18n/useI18n";
 import type { StringKey } from "../../../shared/i18n/locales/en";
-import { useBins } from "../hooks/useBins";
+import { useStations } from "../hooks/useStations";
 import {
   FILL_THRESHOLDS,
   MAP_TYPE_BY_VIEW,
@@ -31,7 +31,14 @@ const VIEW_KEYS: Record<MapView, StringKey> = {
 
 export default function CampusMap() {
   const { t } = useI18n();
-  const { locations, loading, error, reload } = useBins();
+  const {
+    locations: stations,
+    total: stationsTotal,
+    skipped: stationsSkipped,
+    loading: stationsLoading,
+    error: stationsError,
+    reload,
+  } = useStations();
   const [mapView, setMapView] = useState<MapView>(MAP_VIEWS[0]);
   const [zoom, setZoom] = useState<number>(MAP_ZOOM.initial);
   const [active, setActive] = useState<ActiveLocation | null>(null);
@@ -116,7 +123,7 @@ export default function CampusMap() {
         </span>
         <span>
           <StatusDot tone="grey" />
-          {t("map.legend.offline")}
+          {t("map.legend.noReading")}
         </span>
         <span className="ms-auto max-sm:ms-0 max-sm:w-full">
           {t("map.legend.updated")} · <span className={LEGEND_DOT}></span>
@@ -131,9 +138,11 @@ export default function CampusMap() {
           onZoomChange={setZoom}
           active={active}
           onActiveChange={setActive}
-          locations={locations}
-          binsLoading={loading}
-          binsError={error}
+          stations={stations}
+          stationsTotal={stationsTotal}
+          stationsSkipped={stationsSkipped}
+          stationsLoading={stationsLoading}
+          stationsError={stationsError}
           onRetry={reload}
           center={CAMPUS_CENTER}
         />

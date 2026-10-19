@@ -11,6 +11,9 @@ import mongoose from 'mongoose';
 const scanEventSchema = new mongoose.Schema(
   {
     deviceId: { type: String, required: true, trim: true },
+    // Additive, optional: historical rows written before stations existed keep
+    // working. Never required for a scan to be recorded.
+    stationId: { type: String, trim: true, index: true },
     studentId: { type: String, trim: true },
     fillLevel: { type: Number, required: true, min: 0, max: 100 },
     capturedAt: { type: Date, required: true },

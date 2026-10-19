@@ -7,9 +7,11 @@ import {
 } from "@vis.gl/react-google-maps";
 import { SURFACE } from "../../../styles/surfaces";
 import { useI18n } from "../../../shared/i18n/useI18n";
+import type { StringKey } from "../../../shared/i18n/locales/en";
 import type { ApiError } from "../../../services/apiClient";
 import { MAP_ZOOM, POPUP_PLACEMENT } from "../campusMapData";
-import type { BinLocation } from "../campusMapData";
+import type { BinLocation, StationConnectivity } from "../campusMapData";
+import { resolveStationView } from "../stationView";
 import BinMarker from "./BinMarker";
 import LocationPopup from "./LocationPopup";
 import MapNotice from "./MapNotice";
@@ -43,11 +45,15 @@ export interface BinsMapProps {
   onZoomChange: (zoom: number) => void;
   active: ActiveLocation | null;
   onActiveChange: (active: ActiveLocation | null) => void;
-  /** Live buildings from `GET /api/bins`, already grouped by `toBinLocations`. */
-  locations: readonly BinLocation[];
+  /** Live stations from `GET /api/stations`, one marker location each. */
+  stations: readonly BinLocation[];
+  /** Stations returned by the API, including ones without valid coordinates. */
+  stationsTotal: number;
+  /** Stations skipped because they have no usable coordinates. */
+  stationsSkipped: number;
   center: { lat: number; lng: number };
-  binsLoading: boolean;
-  binsError: ApiError | null;
+  stationsLoading: boolean;
+  stationsError: ApiError | null;
   onRetry: () => void;
 }
 
@@ -70,11 +76,19 @@ function MapInstance({ onMap }: { onMap: (map: google.maps.Map) => void }) {
 const RETRY_BUTTON =
   "cursor-pointer rounded border border-border bg-card px-3 py-1.5 text-2xs font-medium text-foreground transition-colors duration-200 hover:bg-muted";
 
+const CONNECTIVITY_KEYS: Record<StationConnectivity, StringKey> = {
+  online: "map.connectivity.online",
+  partial: "map.connectivity.partial",
+  offline: "map.connectivity.offline",
+};
+
 /**
- * The live Google map: one numbered, colour-coded marker per building, with a
- * popup listing that building's bins on hover (desktop) or tap (touch).
- * Loading, empty, failed-request, missing-key and Maps-failure states replace
- * the map rather than leaving a broken one behind.
+ * The live Google map: exactly one numbered, colour-coded marker per station,
+ * with a popup listing that station's containers on hover (desktop) or tap
+ * (touch). Marker colour is the station's highest known fill severity, not its
+ * connectivity. Loading, empty, incomplete-coordinate, failed-request,
+ * missing-key and Maps-failure states replace or annotate the map rather than
+ * leaving a broken one behind.
  */
 export default function BinsMap({
   mapTypeId,
@@ -82,10 +96,12 @@ export default function BinsMap({
   onZoomChange,
   active,
   onActiveChange,
-  locations,
+  stations,
+  stationsTotal,
+  stationsSkipped,
   center,
-  binsLoading,
-  binsError,
+  stationsLoading,
+  stationsError,
   onRetry,
 }: BinsMapProps) {
   const { t } = useI18n();
@@ -100,8 +116,21 @@ export default function BinsMap({
   const framedOnce = useRef(false);
 
   const activeLocation = active
-    ? (locations.find((location) => location.id === active.id) ?? null)
+    ? (stations.find((station) => station.id === active.id) ?? null)
     : null;
+
+  /**
+   * Resolved once per render. Crucially, a loaded snapshot wins over a failed
+   * refresh: the map stays mounted so markers and the camera are preserved,
+   * and the failure becomes a non-blocking warning (see `stationView.ts`).
+   */
+  const view = resolveStationView({
+    loading: stationsLoading,
+    hasError: stationsError !== null,
+    stationCount: stations.length,
+    total: stationsTotal,
+    skipped: stationsSkipped,
+  });
 
   /**
    * Places the popup beside its marker, and keeps it there as the camera moves:
@@ -176,24 +205,25 @@ export default function BinsMap({
     return () => listener.remove();
   }, [map, active, activeLocation]);
 
-  // Frame the live bins from `GET /api/bins` *once*, the first time both the
-  // map instance and the data are ready. The map opens on `center` (BATU); a
-  // later refresh or poll must never move the camera out from under the user.
-  // A single bin keeps the designed zoom instead of Google's maximum.
+  // Frame the live stations from `GET /api/stations` *once*, the first time
+  // both the map instance and the data are ready. The map opens on `center`
+  // (BATU); a later refresh or poll must never move the camera out from under
+  // the user. A single station keeps the designed zoom instead of Google's
+  // maximum.
   useEffect(() => {
-    if (!map || framedOnce.current || locations.length === 0) return;
+    if (!map || framedOnce.current || stations.length === 0) return;
     framedOnce.current = true;
 
-    if (locations.length === 1) {
-      map.setCenter(locations[0].position);
+    if (stations.length === 1) {
+      map.setCenter(stations[0].position);
       map.setZoom(MAP_ZOOM.initial);
       return;
     }
 
     const bounds = new google.maps.LatLngBounds();
-    for (const location of locations) bounds.extend(location.position);
+    for (const station of stations) bounds.extend(station.position);
     map.fitBounds(bounds, 48);
-  }, [map, locations]);
+  }, [map, stations]);
 
   if (!API_KEY) {
     return (
@@ -215,7 +245,7 @@ export default function BinsMap({
     );
   }
 
-  if (binsLoading) {
+  if (view.kind === "loading") {
     return (
       <MapNotice
         tone="loading"
@@ -225,7 +255,7 @@ export default function BinsMap({
     );
   }
 
-  if (binsError) {
+  if (view.kind === "blockingError") {
     return (
       <MapNotice
         tone="error"
@@ -240,12 +270,20 @@ export default function BinsMap({
     );
   }
 
-  if (locations.length === 0) {
+  if (view.kind === "empty") {
     return (
       <MapNotice
-        tone="empty"
-        title={t("map.notice.empty.title")}
-        detail={t("map.notice.empty.detail")}
+        tone={view.noCoordinates ? "error" : "empty"}
+        title={t(
+          view.noCoordinates
+            ? "map.notice.noCoordinates.title"
+            : "map.notice.empty.title",
+        )}
+        detail={t(
+          view.noCoordinates
+            ? "map.notice.noCoordinates.detail"
+            : "map.notice.empty.detail",
+        )}
         action={
           <button type="button" className={RETRY_BUTTON} onClick={onRetry}>
             {t("map.notice.retry")}
@@ -278,28 +316,28 @@ export default function BinsMap({
         >
           <MapInstance onMap={setMap} />
 
-          {locations.map((location) => (
+          {stations.map((station) => (
             <AdvancedMarker
-              key={location.id}
-              position={location.position}
+              key={station.id}
+              position={station.position}
               clickable
               anchorLeft="-50%"
               anchorTop="-50%"
               onMouseEnter={() =>
-                onActiveChange({ id: location.id, pinned: false })
+                onActiveChange({ id: station.id, pinned: false })
               }
               onMouseLeave={() =>
                 onActiveChange(active?.pinned ? active : null)
               }
-              onClick={() => onActiveChange({ id: location.id, pinned: true })}
+              onClick={() => onActiveChange({ id: station.id, pinned: true })}
             >
               <BinMarker
-                location={location}
-                active={active?.id === location.id}
-                title={t("map.marker.title", {
-                  number: location.number,
-                  name: location.name,
-                })}
+                location={station}
+                active={active?.id === station.id}
+                title={`${t("map.marker.title", {
+                  number: station.number,
+                  name: station.name,
+                })} · ${t(CONNECTIVITY_KEYS[station.connectivity])}`}
               />
             </AdvancedMarker>
           ))}
@@ -311,6 +349,26 @@ export default function BinsMap({
             ref={popupRef}
           >
             <LocationPopup location={activeLocation} />
+          </div>
+        )}
+
+        {view.refreshFailed && (
+          <div
+            className={`absolute top-2 start-2 z-10 flex items-center gap-2 ${SURFACE} px-2 py-1 font-mono text-2xs text-label`}
+            role="status"
+          >
+            <span>{t("map.notice.refreshFailed")}</span>
+            <button type="button" className={RETRY_BUTTON} onClick={onRetry}>
+              {t("map.notice.retry")}
+            </button>
+          </div>
+        )}
+
+        {stationsSkipped > 0 && stations.length > 0 && (
+          <div
+            className={`pointer-events-none absolute bottom-2 start-2 z-10 ${SURFACE} px-2 py-1 font-mono text-2xs text-label`}
+          >
+            {t("map.notice.skipped", { count: stationsSkipped })}
           </div>
         )}
 

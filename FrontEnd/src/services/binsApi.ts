@@ -1,17 +1,20 @@
 /**
- * Live bins from the `bins` collection.
+ * Live bins from the `bins` collection (legacy `GET /api/bins` contract).
  *
- * `GET /api/bins` returns one document per physical bin (see
- * `backend/src/models/Bin.js`): a device, its building + coordinates, one
- * fill level, a derived status, and the last sync time.
- *
- * The map is organised by *location* (one marker per building) rather than by
- * device, so `toBinLocations` groups the documents by building. A building
- * with one bin gets one row in the popup; a building with three gets three —
- * the popup already handles any count.
+ * The dashboard map now reads `GET /api/stations` through `stationsApi.ts`,
+ * which groups containers by stable `stationId`. This module is kept for the
+ * legacy endpoint's external consumers and for `useBins`, and still groups
+ * documents by `building` because that endpoint returns one row per device.
  */
 
-import type { Bin, BinLocation } from '../features/dashboard/campusMapData';
+import type {
+  Bin,
+  BinLocation,
+  ContainerConnectivity,
+  FillStatus,
+  StationConnectivity,
+  WasteType,
+} from '../features/dashboard/campusMapData';
 import type { BinStatus } from '../features/dashboard/types';
 import { ApiError, apiRequest, isRecord } from './apiClient';
 
@@ -20,13 +23,19 @@ export interface BinDto {
   _id: string;
   deviceId: string;
   name: string;
+  stationId: string | null;
+  wasteType: WasteType | null;
   location: {
     building: string;
     lat: number | null;
     lng: number | null;
   };
-  fillLevel: number;
+  fillLevel: number | null;
   status: BinStatus;
+  fillStatus: FillStatus;
+  connectivity: ContainerConnectivity;
+  lastKnown: boolean;
+  isStale: boolean;
   lastSyncAt: string | null;
 }
 
@@ -54,9 +63,43 @@ function isBinDto(value: unknown): value is BinDto {
     typeof location.building === 'string' &&
     (location.lat === null || isFiniteNumber(location.lat)) &&
     (location.lng === null || isFiniteNumber(location.lng)) &&
-    isFiniteNumber(value.fillLevel) &&
+    (value.fillLevel === null || isFiniteNumber(value.fillLevel)) &&
     isBinStatus(value.status) &&
+    (value.stationId === null || typeof value.stationId === 'string') &&
+    isWasteTypeOrNull(value.wasteType) &&
+    isFillStatus(value.fillStatus) &&
+    isConnectivity(value.connectivity) &&
+    typeof value.lastKnown === 'boolean' &&
+    typeof value.isStale === 'boolean' &&
     (value.lastSyncAt === null || typeof value.lastSyncAt === 'string')
+  );
+}
+
+function isFillStatus(value: unknown): value is FillStatus {
+  return (
+    value === 'healthy' ||
+    value === 'attention' ||
+    value === 'critical' ||
+    value === 'unknown'
+  );
+}
+
+function isConnectivity(value: unknown): value is ContainerConnectivity {
+  return (
+    value === 'online' ||
+    value === 'offline' ||
+    value === 'never-connected'
+  );
+}
+
+/** Null/absent is legacy-unclassified data, never a validation error. */
+function isWasteTypeOrNull(value: unknown): value is WasteType | null {
+  return (
+    value === null ||
+    value === undefined ||
+    value === 'paper' ||
+    value === 'plastic' ||
+    value === 'liquids'
   );
 }
 
@@ -92,10 +135,38 @@ function toDisplayBin(bin: BinDto): Bin {
     id: bin._id,
     deviceId: bin.deviceId,
     label: bin.name.trim() !== '' ? bin.name : bin.deviceId,
-    fill: Math.round(bin.fillLevel),
-    status: bin.status,
+    wasteType: bin.wasteType ?? null,
+    fill: bin.fillLevel === null ? null : Math.round(bin.fillLevel),
+    fillStatus: bin.fillStatus,
+    connectivity: bin.connectivity,
     lastSyncAt: bin.lastSyncAt,
+    lastKnown: bin.lastKnown,
   };
+}
+
+const SEVERITY_RANK: Record<FillStatus, number> = {
+  unknown: 0,
+  healthy: 1,
+  attention: 2,
+  critical: 3,
+};
+
+function maxSeverity(bins: readonly Bin[]): FillStatus {
+  return bins.reduce<FillStatus>(
+    (worst, bin) =>
+      SEVERITY_RANK[bin.fillStatus] > SEVERITY_RANK[worst]
+        ? bin.fillStatus
+        : worst,
+    'unknown',
+  );
+}
+
+function summarizeConnectivity(bins: readonly Bin[]): StationConnectivity {
+  if (bins.length === 0) return 'offline';
+  const online = bins.filter((bin) => bin.connectivity === 'online').length;
+  if (online === bins.length) return 'online';
+  if (online === 0) return 'offline';
+  return 'partial';
 }
 
 /**
@@ -134,15 +205,36 @@ export function toBinLocations(bins: readonly BinDto[]): readonly BinLocation[] 
       { lat: 0, lng: 0 },
     );
 
+    const bins = ordered.map(toDisplayBin);
+
     return {
       id: `loc-${key}`,
+      // Legacy rows are grouped by their display building, which is not a
+      // station identity; leave it blank rather than fabricating one.
+      stationId: '',
       number: '00',
       name: building !== '' ? building : first.name.trim(),
       position: {
         lat: position.lat / ordered.length,
         lng: position.lng / ordered.length,
       },
-      bins: ordered.map(toDisplayBin),
+      severity: maxSeverity(bins),
+      connectivity: summarizeConnectivity(bins),
+      integrity: {
+        expected: 3,
+        actual: bins.length,
+        valid: bins.length === 3,
+        issues:
+          bins.length === 3
+            ? []
+            : [
+                {
+                  code: 'container-count',
+                  message: `Expected 3 containers, found ${bins.length}`,
+                },
+              ],
+      },
+      bins,
     };
   });
 

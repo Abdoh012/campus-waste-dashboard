@@ -18,6 +18,7 @@ const MAX_ATTEMPTS = 3;
 export async function awardPoint({
   studentId,
   deviceId,
+  stationId,
   fillLevel,
   capturedAt,
   points = 1,
@@ -25,6 +26,7 @@ export async function awardPoint({
   const award = {
     at: new Date(),
     deviceId,
+    ...(stationId ? { stationId } : {}),
     fillLevel,
     capturedAt,
     points,
