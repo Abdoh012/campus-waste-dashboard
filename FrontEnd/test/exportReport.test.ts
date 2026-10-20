@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import type { Workbook } from 'exceljs';
 import {
-  buildReportCsv,
-  csvField,
+  REPORT_SHEET_NAMES,
+  buildCampusReportWorkbook,
   type ReportSource,
 } from '../src/features/dashboard/exportReport';
+import { reportFilename } from '../src/features/dashboard/reportExport';
 import type { Stats } from '../src/shared/hooks/useStats';
 import type { StationDto } from '../src/services/stationsApi';
 import type { FillHistoryResponse, DailyPointsResponse } from '../src/services/historyApi';
@@ -112,7 +114,10 @@ const pointsDaily: DailyPointsResponse = {
   timezone: 'UTC',
   bucket: 'day',
   unit: 'points',
-  points: [{ date: '2026-10-19', points: 2, studentCount: 2 }],
+  points: [
+    { date: '2026-10-19', points: 2, studentCount: 2 },
+    { date: '2026-10-18', points: 1, studentCount: 1 },
+  ],
 };
 
 const report: ReportSource = {
@@ -123,109 +128,155 @@ const report: ReportSource = {
   pointsDaily,
 };
 
-describe('csvField', () => {
-  it('leaves plain values untouched', () => {
-    expect(csvField('healthy')).toBe('healthy');
-    expect(csvField(48.8)).toBe('48.8');
-    expect(csvField(true)).toBe('true');
-  });
+let workbook: Workbook;
 
-  it('renders null and undefined as empty fields, never "null"', () => {
-    expect(csvField(null)).toBe('');
-    expect(csvField(undefined)).toBe('');
-  });
+beforeAll(async () => {
+  workbook = await buildCampusReportWorkbook(report);
+});
 
-  it('quotes commas, quotes and line breaks per RFC 4180', () => {
-    expect(csvField('North Gate, Zone A')).toBe('"North Gate, Zone A"');
-    expect(csvField('Paper "A"')).toBe('"Paper ""A"""');
-    expect(csvField('line one\nline two')).toBe('"line one\nline two"');
-  });
+function sheetRows(name: (typeof REPORT_SHEET_NAMES)[number]): number {
+  const sheet = workbook.getWorksheet(name);
+  expect(sheet).toBeDefined();
+  return sheet?.actualRowCount ?? 0;
+}
 
-  it('neutralises spreadsheet formula injection in text fields', () => {
-    expect(csvField('=1+1')).toBe("'=1+1");
-    expect(csvField('+SUM(A1)')).toBe("'+SUM(A1)");
-    expect(csvField('@cmd')).toBe("'@cmd");
-    // Numbers keep their sign: only strings are guarded.
-    expect(csvField(-5)).toBe('-5');
+function findOverviewRow(label: string): { label: string; value: unknown } | null {
+  const sheet = workbook.getWorksheet('Overview');
+  if (!sheet) return null;
+  for (let r = 1; r <= sheet.rowCount; r += 1) {
+    const value = sheet.getRow(r).getCell(1).value;
+    if (value === label) {
+      return { label, value: sheet.getRow(r).getCell(2).value };
+    }
+  }
+  return null;
+}
+
+describe('campus report workbook', () => {
+  it('creates the five sheets in a fixed order', () => {
+    expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
+      ...REPORT_SHEET_NAMES,
+    ]);
   });
 });
 
-describe('buildReportCsv', () => {
-  const csv = buildReportCsv(report);
-  const lines = csv.split('\r\n');
-
-  it('starts with the fixed five-column header', () => {
-    expect(lines[0]).toBe('section,entity,metric,value,unit');
-  });
-
-  it('ends with a single trailing CRLF', () => {
-    expect(csv.endsWith('\r\n')).toBe(true);
-    expect(csv.endsWith('\r\n\r\n')).toBe(false);
-  });
-
-  it('includes report metadata and summary totals', () => {
-    expect(csv).toContain(
-      'metadata,report,generated_at,2026-10-19T20:24:00.000Z,ISO-8601',
+describe('overview sheet', () => {
+  it('carries report metadata', () => {
+    expect(findOverviewRow('Generated (UTC)')?.value).toBe('2026-10-19 20:24:00');
+    expect(findOverviewRow('Timezone')?.value).toBe('UTC');
+    expect(findOverviewRow('Fill history period (last30)')?.value).toBe(
+      '2026-09-20 → 2026-10-19',
     );
-    expect(csv).toContain('summary,campus,points_total,29,points');
-    expect(csv).toContain('summary,campus,students_total,5,students');
-    expect(csv).toContain('summary,campus,containers_average_fill,48.8,percent');
-    expect(csv).toContain('summary,campus,stations_fully_connected_pct,50,percent');
+    expect(findOverviewRow('Points period (last7)')?.value).toBe('2026-10-13 → 2026-10-19');
   });
 
-  it('emits station and container status with correct escaping', () => {
-    expect(csv).toContain('station,STN-NORTH,name,"North Gate, Zone A",');
-    expect(csv).toContain('station,STN-NORTH,severity,critical,');
-    expect(csv).toContain('container,ESP32-BIN-01,name,"Paper ""A""",');
-    expect(csv).toContain('container,ESP32-BIN-01,fill_level,18,percent');
-    expect(csv).toContain('container,ESP32-BIN-01,fill_status,healthy,');
-    expect(csv).toContain('container,ESP32-BIN-01,connectivity,online,');
-    // A null fill/type/pin is an empty field, not the string "null".
-    expect(csv).toContain('container,ESP32-BIN-05,waste_type,,');
-    expect(csv).toContain('container,ESP32-BIN-05,fill_level,,percent');
-    expect(csv).toContain('container,ESP32-BIN-05,connectivity,never-connected,');
+  it('carries the KPI totals exactly as the dashboard cards show them', () => {
+    expect(findOverviewRow('Stations total')?.value).toBe(2);
+    expect(findOverviewRow('Stations offline')?.value).toBe(1);
+    expect(findOverviewRow('Containers total')?.value).toBe(6);
+    expect(findOverviewRow('Containers never-connected')?.value).toBe(1);
+    expect(findOverviewRow('Average fill (%)')?.value).toBe(48.8);
+    expect(findOverviewRow('Bins total')?.value).toBe(6);
+    expect(findOverviewRow('Points total (all time)')?.value).toBe(29);
+    expect(findOverviewRow('Students on leaderboard')?.value).toBe(5);
   });
+});
 
-  it('includes the exact chart histories', () => {
-    expect(csv).toContain('fill_history,2026-10-19,avg_fill_level,48.8,percent');
-    expect(csv).toContain('fill_history,2026-10-19,samples,5,samples');
-    expect(csv).toContain('points_history,2026-10-19,points,2,points');
-    expect(csv).toContain('points_history,2026-10-19,students,2,students');
+describe('stations sheet', () => {
+  it('has one row per station with its status and location', () => {
+    const sheet = workbook.getWorksheet('Stations');
+    expect(sheet?.getRow(1).getCell(1).value).toBe('Station ID');
+    expect(sheet?.getRow(1).getCell(7).value).toBe('Integrity valid');
+    expect(sheet?.getRow(1).getCell(9).value).toBe('Connectivity');
+
+    const row = sheet?.getRow(2);
+    expect(row?.getCell(1).value).toBe('STN-NORTH');
+    expect(row?.getCell(2).value).toBe('North Gate, Zone A');
+    expect(row?.getCell(6).value).toBe(2); // containers actually attached in the fixture
+    expect(row?.getCell(7).value).toBe(false); // integrity: expected 3, actual 2
+    expect(row?.getCell(8).value).toBe('critical');
+    expect(row?.getCell(9).value).toBe('online');
+    expect(row?.getCell(10).value).toEqual(new Date('2026-10-19T20:24:00.000Z'));
   });
+});
 
-  it('never writes the text "null" for a missing value', () => {
-    expect(csv.includes('null')).toBe(false);
+describe('bins sheet', () => {
+  it('lists every container under its station with its live state', () => {
+    const sheet = workbook.getWorksheet('Bins');
+    expect(sheet?.getRow(1).getCell(4).value).toBe('Material');
+    expect(sheet?.getRow(1).getCell(5).value).toBe('Fill (%)');
+
+    const paper = sheet?.getRow(2);
+    expect(paper?.getCell(1).value).toBe('STN-NORTH');
+    expect(paper?.getCell(2).value).toBe('ESP32-BIN-01');
+    expect(paper?.getCell(3).value).toBe('Paper "A"');
+    expect(paper?.getCell(4).value).toBe('paper');
+    expect(paper?.getCell(5).value).toBe(18);
+    expect(paper?.getCell(6).value).toBe('healthy');
+    expect(paper?.getCell(7).value).toBe('online');
+    expect(paper?.getCell(8).value).toEqual(new Date('2026-10-19T20:24:00.000Z'));
+    expect(paper?.getCell(9).value).toBe(true);
+
+    // `never-connected` renders as a truthful blank, never a 0% reading.
+    const silent = sheet?.getRow(3);
+    expect(silent?.getCell(2).value).toBe('ESP32-BIN-05');
+    expect(silent?.getCell(4).value).toBeNull();
+    expect(silent?.getCell(5).value).toBeNull();
+    expect(silent?.getCell(6).value).toBe('unknown');
+    expect(silent?.getCell(7).value).toBe('never-connected');
+    expect(silent?.getCell(8).value).toBeNull();
   });
+});
 
-  it('gives every data row exactly five columns', () => {
-    const rows = lines.filter((line) => line !== '');
-    for (const line of rows) {
-      // Parse with the same quoting rules the writer used.
-      const fields: string[] = [];
-      let field = '';
-      let quoted = false;
-      for (let i = 0; i < line.length; i += 1) {
-        const char = line[i];
-        if (quoted) {
-          if (char === '"' && line[i + 1] === '"') {
-            field += '"';
-            i += 1;
-          } else if (char === '"') {
-            quoted = false;
-          } else {
-            field += char;
-          }
-        } else if (char === '"') {
-          quoted = true;
-        } else if (char === ',') {
-          fields.push(field);
-          field = '';
-        } else {
-          field += char;
-        }
-      }
-      fields.push(field);
-      expect(fields, line).toHaveLength(5);
-    }
+describe('fill history sheet', () => {
+  it('has one row per day bucket with the chart values', () => {
+    const sheet = workbook.getWorksheet('Fill history');
+    expect(sheet!.actualRowCount - 1).toBe(fillHistory.points.length);
+
+    const row = sheet?.getRow(2);
+    expect(row?.getCell(1).value).toBe('2026-10-19');
+    expect(row?.getCell(2).value).toBe(48.8);
+    expect(row?.getCell(3).value).toBe(15.6);
+    expect(row?.getCell(4).value).toBe(88);
+    expect(row?.getCell(5).value).toBe(5);
+    expect(row?.getCell(6).value).toBe(5);
+    expect(row?.getCell(2).numFmt).toBe('0.0"%"');
+  });
+});
+
+describe('points sheet', () => {
+  it('has one row per day and a real SUM totals row', () => {
+    const sheet = workbook.getWorksheet('Points');
+    expect(sheet?.getRow(1).getCell(2).value).toBe('Points');
+
+    expect(sheet?.getRow(2).getCell(1).value).toBe('2026-10-19');
+    expect(sheet?.getRow(2).getCell(2).value).toBe(2);
+
+    const totalRow = sheet?.getRow(2 + pointsDaily.points.length);
+    expect(totalRow?.getCell(1).value).toBe('Total (period)');
+    const total = totalRow?.getCell(2).value as { formula?: string } | undefined;
+    expect(total?.formula).toBe('SUM(B2:B3)');
+  });
+});
+
+describe('reportFilename', () => {
+  it('uses a date and sortable time stamp', () => {
+    expect(reportFilename(new Date('2026-10-19T20:24:00.000Z'))).toBe(
+      'campus-report-2026-10-19_2024.xlsx',
+    );
+  });
+});
+
+describe('workbook serialisation', () => {
+  it('round-trips through writeBuffer → load as a real xlsx', async () => {
+    const ExcelJS = await import('exceljs');
+    const bytes = await workbook.xlsx.writeBuffer();
+
+    const parsed = await new ExcelJS.Workbook().xlsx.load(bytes as ArrayBuffer);
+    expect(parsed.worksheets.map((sheet) => sheet.name)).toEqual([...REPORT_SHEET_NAMES]);
+
+    const parsedBins = parsed.getWorksheet('Bins');
+    expect(parsedBins?.getRow(2).getCell(2).value).toBe('ESP32-BIN-01');
+    expect(parsedBins?.getRow(2).getCell(5).value).toBe(18);
   });
 });

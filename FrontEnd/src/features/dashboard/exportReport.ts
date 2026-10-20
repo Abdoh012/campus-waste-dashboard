@@ -1,24 +1,40 @@
 /**
- * Pure report serialisation for the dashboard's "Export report" button.
+ * Pure workbook builder for the dashboard's "Export report" button.
  *
- * The CSV is a tidy long table — one metric per row — so metadata, summary
- * totals, per-station and per-container status, and the two chart histories all
- * share the same five columns and stay readable in a spreadsheet:
+ * Instead of one long key–value CSV, the report is a real Excel file with one
+ * sheet per question someone would ask:
  *
- *   section, entity, metric, value, unit
+ *   1. `Overview`    — fleet health totals (the same numbers as the KPI cards), points.
+ *   2. `Stations`    — one row per station: location, status, integrity, last sync.
+ *   3. `Bins`        — one row per container under its station: fill, status, sync.
+ *   4. `Fill history`— daily campus fill profile for the last 30 days.
+ *   5. `Points`      — daily recycling points for the last 7 days, with totals.
  *
  * Values come from the same authenticated endpoints the dashboard renders, so
- * the file cannot drift from the screen. Escaping (quotes, commas, newlines) and
- * spreadsheet formula injection are handled here; nothing in this module touches
- * the DOM or the network.
+ * the workbook cannot drift from the screen. All timestamps are UTC. Styling is
+ * modest and deliberate: bold filled table headers, frozen header rows,
+ * filterable columns and sensible widths — no decorations that age badly.
+ *
+ * `exceljs` is imported dynamically so its size never reaches the initial app
+ * bundle; it is only loaded when the user actually exports.
  */
 import type { FillHistoryResponse, DailyPointsResponse } from '../../services/historyApi';
 import type { StationDto } from '../../services/stationsApi';
 import type { Stats } from '../../shared/hooks/useStats';
+import type { Worksheet, Workbook } from 'exceljs';
 
 /** History windows included in the export (chart defaults). */
 export const REPORT_FILL_PERIOD = 'last30' as const;
 export const REPORT_POINTS_PERIOD = 'last7' as const;
+
+/** Exact sheet order — tests pin this. */
+export const REPORT_SHEET_NAMES = [
+  'Overview',
+  'Stations',
+  'Bins',
+  'Fill history',
+  'Points',
+] as const;
 
 export interface ReportSource {
   generatedAt: Date;
@@ -28,151 +44,338 @@ export interface ReportSource {
   pointsDaily: DailyPointsResponse;
 }
 
-export type CsvSection =
-  | 'metadata'
-  | 'summary'
-  | 'station'
-  | 'container'
-  | 'fill_history'
-  | 'points_history';
+const HEADER_FILL = '1F4E78';
+const GROUP_FILL = 'D9E1F2';
+const DATETIME_FORMAT = 'yyyy-mm-dd hh:mm:ss';
 
-type CsvValue = string | number | boolean | null | undefined;
+type ColumnWidth = { width: number };
 
-/**
- * Escape one CSV field.
- *
- * - `null`/`undefined` become an empty field, never the text "null".
- * - Fields containing a comma, quote or line break are quoted, with inner
- *   quotes doubled (RFC 4180).
- * - Free-text values starting with a formula trigger are prefixed with a single
- *   quote so a spreadsheet treats them as text (CSV injection defence).
- */
-export function csvField(value: CsvValue): string {
-  if (value === null || value === undefined) return '';
+/* ------------------------------------------------------------------ style */
 
-  let text = String(value);
-  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(text)) {
-    text = `'${text}`;
+/** Bold white header on dark blue + freeze + filter — shared by every sheet. */
+function styleTableHeader(sheet: Worksheet, columnCount: number): void {
+  sheet.views = [{ state: 'frozen', ySplit: 1 }];
+  if (columnCount > 1) {
+    sheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: 1, column: columnCount },
+    };
   }
-  if (/[",\r\n]/.test(text)) {
-    return `"${text.replace(/"/g, '""')}"`;
-  }
-  return text;
+  const header = sheet.getRow(1);
+  header.height = 20;
+  header.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+  header.alignment = { vertical: 'middle' };
+  header.eachCell((cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: `FF${HEADER_FILL}` },
+    };
+    cell.alignment = { vertical: 'middle', wrapText: true };
+  });
+  header.commit();
 }
 
-/** Serialise one row, padding the unit column so every row has five fields. */
-export function csvRow(
-  section: CsvSection,
-  entity: CsvValue,
-  metric: string,
-  value: CsvValue,
-  unit: CsvValue = '',
-): string {
-  return [section, entity, metric, value, unit].map(csvField).join(',');
+/** Bold blue group heading used on the Overview sheet. */
+function styleGroupHeading(rowNumber: number, sheet: Worksheet, title: string): void {
+  const row = sheet.getRow(rowNumber);
+  row.getCell(1).value = title;
+  row.font = { bold: true, size: 11 };
+  row.eachCell((cell, colNumber) => {
+    if (colNumber <= 2) {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: `FF${GROUP_FILL}` },
+      };
+    }
+  });
+  row.commit();
 }
 
-/** Build the complete report as CSV text (CRLF line endings, trailing newline). */
-export function buildReportCsv({
-  generatedAt,
-  stats,
-  stations,
-  fillHistory,
-  pointsDaily,
-}: ReportSource): string {
-  const lines: string[] = [['section', 'entity', 'metric', 'value', 'unit'].join(',')];
-  const row = (
-    section: CsvSection,
-    entity: CsvValue,
-    metric: string,
-    value: CsvValue,
-    unit: CsvValue = '',
-  ) => lines.push(csvRow(section, entity, metric, value, unit));
+/* --------------------------------------------------------------- overview */
 
-  // 1. Metadata — how and when this snapshot was produced.
-  row('metadata', 'report', 'generated_at', generatedAt.toISOString(), 'ISO-8601');
-  row('metadata', 'report', 'timezone', fillHistory.timezone);
-  row('metadata', 'report', 'fill_history_period', REPORT_FILL_PERIOD);
-  row('metadata', 'report', 'fill_history_from', fillHistory.from);
-  row('metadata', 'report', 'fill_history_to', fillHistory.to);
-  row('metadata', 'report', 'points_history_period', REPORT_POINTS_PERIOD);
-  row('metadata', 'report', 'points_history_from', pointsDaily.from);
-  row('metadata', 'report', 'points_history_to', pointsDaily.to);
+const OVERVIEW_WIDTHS: ColumnWidth[] = [{ width: 34 }, { width: 24 }];
 
-  // 2. Campus summary totals (the same numbers as the KPI cards).
-  const { bins, points, stations: stationStats, containers } = stats;
-  row('summary', 'campus', 'bins_total', bins.total, 'bins');
-  row('summary', 'campus', 'bins_healthy', bins.healthy, 'bins');
-  row('summary', 'campus', 'bins_attention', bins.attention, 'bins');
-  row('summary', 'campus', 'bins_critical', bins.critical, 'bins');
-  row('summary', 'campus', 'bins_offline', bins.offline, 'bins');
-  row('summary', 'campus', 'bins_operational_pct', bins.operationalPct, 'percent');
-  row('summary', 'campus', 'stations_total', stationStats.total, 'stations');
-  row('summary', 'campus', 'stations_valid', stationStats.valid, 'stations');
-  row('summary', 'campus', 'stations_incomplete', stationStats.incomplete, 'stations');
-  row('summary', 'campus', 'stations_healthy', stationStats.healthy, 'stations');
-  row('summary', 'campus', 'stations_attention', stationStats.attention, 'stations');
-  row('summary', 'campus', 'stations_critical', stationStats.critical, 'stations');
-  row('summary', 'campus', 'stations_unknown', stationStats.unknown, 'stations');
-  row('summary', 'campus', 'stations_online', stationStats.online, 'stations');
-  row('summary', 'campus', 'stations_partial', stationStats.partial, 'stations');
-  row('summary', 'campus', 'stations_offline', stationStats.offline, 'stations');
-  row(
-    'summary',
-    'campus',
-    'stations_fully_connected_pct',
-    stationStats.fullyConnectedPct,
-    'percent',
-  );
-  row('summary', 'campus', 'containers_total', containers.total, 'containers');
-  row('summary', 'campus', 'containers_healthy', containers.healthy, 'containers');
-  row('summary', 'campus', 'containers_attention', containers.attention, 'containers');
-  row('summary', 'campus', 'containers_critical', containers.critical, 'containers');
-  row('summary', 'campus', 'containers_unknown', containers.unknown, 'containers');
-  row('summary', 'campus', 'containers_online', containers.online, 'containers');
-  row('summary', 'campus', 'containers_offline', containers.offline, 'containers');
-  row('summary', 'campus', 'containers_never_connected', containers.neverConnected, 'containers');
-  row('summary', 'campus', 'containers_unassigned', containers.unassigned, 'containers');
-  row('summary', 'campus', 'containers_orphaned', containers.orphaned, 'containers');
-  row('summary', 'campus', 'containers_online_pct', containers.onlinePct, 'percent');
-  row('summary', 'campus', 'containers_average_fill', containers.averageFill, 'percent');
-  row('summary', 'campus', 'points_total', points.totalPoints, 'points');
-  row('summary', 'campus', 'students_total', points.studentCount, 'students');
+function overviewSheet(workbook: Workbook, source: ReportSource): void {
+  const sheet = workbook.addWorksheet(REPORT_SHEET_NAMES[0], {
+    views: [],
+  });
+  sheet.columns = OVERVIEW_WIDTHS;
 
-  // 3. Stations and their containers.
-  for (const station of stations) {
-    row('station', station.stationId, 'name', station.name);
-    row('station', station.stationId, 'building', station.location.building);
-    row('station', station.stationId, 'severity', station.severity);
-    row('station', station.stationId, 'connectivity', station.connectivity);
-    row('station', station.stationId, 'integrity_valid', station.integrity.valid);
-    row('station', station.stationId, 'containers', station.containers.length, 'containers');
-    row('station', station.stationId, 'last_sync_at', station.lastSyncAt, 'ISO-8601');
+  const title = sheet.getRow(1);
+  title.getCell(1).value = 'Campus Waste Dashboard — Operations Report';
+  title.font = { bold: true, size: 14 };
+  title.commit();
 
+  const meta = [
+    ['Generated (UTC)', source.generatedAt.toISOString().replace('T', ' ').slice(0, 19)],
+    ['Timezone', source.fillHistory.timezone],
+    [
+      `Fill history period (${REPORT_FILL_PERIOD})`,
+      `${source.fillHistory.from.slice(0, 10)} → ${source.fillHistory.to.slice(0, 10)}`,
+    ],
+    [
+      `Points period (${REPORT_POINTS_PERIOD})`,
+      `${source.pointsDaily.from.slice(0, 10)} → ${source.pointsDaily.to.slice(0, 10)}`,
+    ],
+    ['Stations on report', source.stations.length],
+  ];
+  let rowNumber = 3;
+  meta.forEach(([label, value]) => {
+    const row = sheet.getRow(rowNumber);
+    row.getCell(1).value = label;
+    row.getCell(1).font = { bold: true };
+    row.getCell(2).value = value;
+    rowNumber += 1;
+  });
+
+  const { bins, points, stations: stationStats, containers } = source.stats;
+
+  const groups: Array<{ title: string; pairs: Array<[string, string | number | null]> }> = [
+    {
+      title: 'Fleet — stations',
+      pairs: [
+        ['Stations total', stationStats.total],
+        ['Stations valid', stationStats.valid],
+        ['Stations incomplete', stationStats.incomplete],
+        ['Stations healthy', stationStats.healthy],
+        ['Stations attention', stationStats.attention],
+        ['Stations critical', stationStats.critical],
+        ['Stations unknown', stationStats.unknown],
+        ['Stations online', stationStats.online],
+        ['Stations partial', stationStats.partial],
+        ['Stations offline', stationStats.offline],
+        ['Fully connected (%)', stationStats.fullyConnectedPct],
+      ],
+    },
+    {
+      title: 'Fleet — containers',
+      pairs: [
+        ['Containers total', containers.total],
+        ['Containers healthy', containers.healthy],
+        ['Containers attention', containers.attention],
+        ['Containers critical', containers.critical],
+        ['Containers unknown', containers.unknown],
+        ['Containers online', containers.online],
+        ['Containers offline', containers.offline],
+        ['Containers never-connected', containers.neverConnected],
+        ['Containers unassigned', containers.unassigned],
+        ['Containers orphaned', containers.orphaned],
+        ['Containers online (%)', containers.onlinePct],
+        ['Average fill (%)', containers.averageFill],
+      ],
+    },
+    {
+      title: 'Bins (legacy view)',
+      pairs: [
+        ['Bins total', bins.total],
+        ['Bins healthy', bins.healthy],
+        ['Bins attention', bins.attention],
+        ['Bins critical', bins.critical],
+        ['Bins offline', bins.offline],
+        ['Operational (%)', bins.operationalPct],
+      ],
+    },
+    {
+      title: 'Points',
+      pairs: [
+        ['Points total (all time)', points.totalPoints],
+        ['Students on leaderboard', points.studentCount],
+      ],
+    },
+  ];
+
+  rowNumber += 1;
+  for (const group of groups) {
+    styleGroupHeading(rowNumber, sheet, group.title);
+    rowNumber += 1;
+    for (const [label, value] of group.pairs) {
+      const row = sheet.getRow(rowNumber);
+      row.getCell(1).value = label;
+      row.getCell(2).value = value;
+      rowNumber += 1;
+    }
+    rowNumber += 1; // blank row between groups
+  }
+}
+
+/* --------------------------------------------------------- station sheet */
+
+const STATION_HEADER = [
+  'Station ID',
+  'Station name',
+  'Building',
+  'Latitude',
+  'Longitude',
+  'Containers',
+  'Integrity valid',
+  'Severity',
+  'Connectivity',
+  'Last sync (UTC)',
+] as const;
+
+const STATION_WIDTHS: ColumnWidth[] = [
+  { width: 15 }, { width: 32 }, { width: 30 }, { width: 11 }, { width: 11 },
+  { width: 11 }, { width: 13 }, { width: 12 }, { width: 13 }, { width: 21 },
+];
+
+function stationsSheet(workbook: Workbook, source: ReportSource): void {
+  const sheet = workbook.addWorksheet(REPORT_SHEET_NAMES[1]);
+  sheet.columns = STATION_WIDTHS;
+  sheet.addRow([...STATION_HEADER]);
+  styleTableHeader(sheet, STATION_HEADER.length);
+
+  for (const station of source.stations) {
+    const row = sheet.addRow([
+      station.stationId,
+      station.name,
+      station.location.building,
+      station.location.lat,
+      station.location.lng,
+      station.containers.length,
+      station.integrity.valid,
+      station.severity,
+      station.connectivity,
+      station.lastSyncAt === null ? null : new Date(station.lastSyncAt),
+    ]);
+    const lastSyncCell = row.getCell(STATION_HEADER.length);
+    lastSyncCell.numFmt = DATETIME_FORMAT;
+  }
+}
+
+/* ------------------------------------------------------------ bins sheet */
+
+const BIN_HEADER = [
+  'Station ID',
+  'Container ID',
+  'Container name',
+  'Material',
+  'Fill (%)',
+  'Fill status',
+  'Connectivity',
+  'Last sync (UTC)',
+  'Last known',
+  'Stale',
+] as const;
+
+const BIN_WIDTHS: ColumnWidth[] = [
+  { width: 15 }, { width: 15 }, { width: 34 }, { width: 11 },
+  { width: 9 }, { width: 12 }, { width: 16 }, { width: 21 },
+  { width: 11 }, { width: 8 },
+];
+
+function binsSheet(workbook: Workbook, source: ReportSource): void {
+  const sheet = workbook.addWorksheet(REPORT_SHEET_NAMES[2]);
+  sheet.columns = BIN_WIDTHS;
+  sheet.addRow([...BIN_HEADER]);
+  styleTableHeader(sheet, BIN_HEADER.length);
+
+  for (const station of source.stations) {
     for (const container of station.containers) {
-      row('container', container.deviceId, 'station_id', container.stationId);
-      row('container', container.deviceId, 'name', container.name);
-      row('container', container.deviceId, 'waste_type', container.wasteType);
-      row('container', container.deviceId, 'fill_level', container.fillLevel, 'percent');
-      row('container', container.deviceId, 'fill_status', container.fillStatus);
-      row('container', container.deviceId, 'connectivity', container.connectivity);
-      row('container', container.deviceId, 'last_sync_at', container.lastSyncAt, 'ISO-8601');
-      row('container', container.deviceId, 'last_known', container.lastKnown);
-      row('container', container.deviceId, 'is_stale', container.isStale);
+      const row = sheet.addRow([
+        station.stationId,
+        container.deviceId,
+        container.name,
+        container.wasteType,
+        container.fillLevel,
+        container.fillStatus,
+        container.connectivity,
+        container.lastSyncAt === null ? null : new Date(container.lastSyncAt),
+        container.lastKnown,
+        container.isStale,
+      ]);
+      row.getCell(5).numFmt = '0"%"';
+      row.getCell(8).numFmt = DATETIME_FORMAT;
     }
   }
+}
 
-  // 4. Chart histories, exactly as the two dashboard charts receive them.
-  for (const point of fillHistory.points) {
-    row('fill_history', point.bucket, 'avg_fill_level', point.avgFillLevel, 'percent');
-    row('fill_history', point.bucket, 'min_fill_level', point.minFillLevel, 'percent');
-    row('fill_history', point.bucket, 'max_fill_level', point.maxFillLevel, 'percent');
-    row('fill_history', point.bucket, 'samples', point.sampleCount, 'samples');
-    row('fill_history', point.bucket, 'containers', point.binCount, 'containers');
+/* ----------------------------------------------------- fill history sheet */
+
+const FILL_HEADER = [
+  'Day (UTC)',
+  'Average fill (%)',
+  'Min fill (%)',
+  'Max fill (%)',
+  'Samples',
+  'Containers',
+] as const;
+
+const FILL_WIDTHS: ColumnWidth[] = [
+  { width: 13 }, { width: 16 }, { width: 13 }, { width: 13 },
+  { width: 10 }, { width: 12 },
+];
+
+function fillHistorySheet(workbook: Workbook, source: ReportSource): void {
+  const sheet = workbook.addWorksheet(REPORT_SHEET_NAMES[3]);
+  sheet.columns = FILL_WIDTHS;
+  sheet.addRow([...FILL_HEADER]);
+  styleTableHeader(sheet, FILL_HEADER.length);
+
+  for (const point of source.fillHistory.points) {
+    const row = sheet.addRow([
+      point.bucket,
+      point.avgFillLevel,
+      point.minFillLevel,
+      point.maxFillLevel,
+      point.sampleCount,
+      point.binCount,
+    ]);
+    for (const column of [2, 3, 4]) {
+      row.getCell(column).numFmt = '0.0"%"';
+    }
   }
-  for (const point of pointsDaily.points) {
-    row('points_history', point.date, 'points', point.points, 'points');
-    row('points_history', point.date, 'students', point.studentCount, 'students');
+}
+
+/* ------------------------------------------------------------- points sheet */
+
+const POINTS_HEADER = ['Date (UTC)', 'Points', 'Students'] as const;
+
+const POINTS_WIDTHS: ColumnWidth[] = [{ width: 15 }, { width: 12 }, { width: 12 }];
+
+function pointsSheet(workbook: Workbook, source: ReportSource): void {
+  const sheet = workbook.addWorksheet(REPORT_SHEET_NAMES[4]);
+  sheet.columns = POINTS_WIDTHS;
+  sheet.addRow([...POINTS_HEADER]);
+  styleTableHeader(sheet, POINTS_HEADER.length);
+
+  const firstDataRow = 2;
+  for (const point of source.pointsDaily.points) {
+    sheet.addRow([point.date, point.points, point.studentCount]);
   }
 
-  return `${lines.join('\r\n')}\r\n`;
+  const lastDataRow = Math.max(firstDataRow, source.pointsDaily.points.length + 1);
+  if (lastDataRow >= firstDataRow) {
+    const totalRow = sheet.addRow([
+      'Total (period)',
+      { formula: `SUM(B${firstDataRow}:B${lastDataRow})` },
+      { formula: `SUM(C${firstDataRow}:C${lastDataRow})` },
+    ]);
+    totalRow.font = { bold: true };
+  }
+}
+
+/* ------------------------------------------------------------------ build */
+
+/**
+ * Build the complete five-sheet workbook in memory.
+ *
+ * Returns the workbook itself (not bytes) so callers can verify it in tests and
+ * let the export path choose how to serialise it.
+ */
+export async function buildCampusReportWorkbook(source: ReportSource): Promise<Workbook> {
+  const ExcelJS = await import('exceljs');
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Campus Waste Dashboard';
+  workbook.created = source.generatedAt;
+  workbook.modified = source.generatedAt;
+
+  overviewSheet(workbook, source);
+  stationsSheet(workbook, source);
+  binsSheet(workbook, source);
+  fillHistorySheet(workbook, source);
+  pointsSheet(workbook, source);
+
+  return workbook;
 }

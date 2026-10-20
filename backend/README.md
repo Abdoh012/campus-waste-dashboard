@@ -357,9 +357,14 @@ Connectivity in the demo is wall-clock relative: a container reads `online` only
 for `OFFLINE_THRESHOLD_MINUTES` (default 5) after its `lastSyncAt`. Re-run the
 seed shortly before a demo to refresh the timestamps.
 
-The dashboard's **Export report** button downloads a CSV built client-side from
-`/api/stats`, `/api/stations`, `/api/stats/fill-history?period=last30` and
-`/api/stats/points-daily?period=last7`; it needs no extra endpoint or permission.
+The dashboard's **Export report** button downloads a real Excel workbook
+(`.xlsx`, via ExcelJS in the browser) built client-side from `/api/stats`,
+`/api/stations`, `/api/stats/fill-history?period=last30` and
+`/api/stats/points-daily?period=last7`; it needs no extra endpoint or
+permission. The workbook has five sheets: `Overview` (fleet KPI totals),
+`Stations`, `Bins` (one row per container), `Fill history` (last 30 days) and
+`Points` (last 7 days, with totals). The library is code-split and only loaded
+when the user exports.
 
 Development with auto-restart:
 

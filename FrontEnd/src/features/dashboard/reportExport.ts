@@ -1,11 +1,13 @@
 /**
- * Side-effecting half of the report export: fetch the authenticated data,
- * serialise it with the pure builder, and hand the browser a CSV download.
+ * Side-effecting half of the report export: fetch the authenticated data, build
+ * the Excel workbook with the pure builder, and hand the browser a real .xlsx
+ * download.
  *
  * The data is read from the same endpoints the dashboard already renders, so the
  * export needs no backend route and no new permissions. A failure at any step
  * throws before a success message can be shown.
  */
+import type { Workbook } from 'exceljs';
 import { ApiError, apiRequest } from '../../services/apiClient';
 import {
   fetchDailyPoints,
@@ -16,16 +18,26 @@ import { isStats } from '../../shared/hooks/useStats';
 import {
   REPORT_FILL_PERIOD,
   REPORT_POINTS_PERIOD,
-  buildReportCsv,
+  buildCampusReportWorkbook,
 } from './exportReport';
 
-/** Start a client-side download for a UTF-8 text file. */
-function downloadTextFile(contents: string, filename: string, mime: string): void {
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+/** `campus-report-2026-10-20_0930.xlsx` — sorted and copy-safe. */
+export function reportFilename(generatedAt: Date): string {
+  const iso = generatedAt.toISOString();
+  const day = iso.slice(0, 10);
+  const time = iso.slice(11, 16).replace(':', '');
+  return `campus-report-${day}_${time}.xlsx`;
+}
+
+/** Start a client-side download for a binary file. */
+function downloadBinaryFile(contents: ArrayBuffer, filename: string, mime: string): void {
   if (typeof document === 'undefined' || typeof URL.createObjectURL !== 'function') {
     throw new Error('This environment cannot save files.');
   }
 
-  const blob = new Blob([contents], { type: `${mime};charset=utf-8` });
+  const blob = new Blob([contents], { type: mime });
   const url = URL.createObjectURL(blob);
   try {
     const anchor = document.createElement('a');
@@ -43,7 +55,7 @@ function downloadTextFile(contents: string, filename: string, mime: string): voi
 }
 
 /**
- * Fetch the live dashboard data and trigger a CSV download.
+ * Fetch the live dashboard data and trigger a .xlsx download.
  *
  * @returns the downloaded file name, for the caller's confirmation message.
  * @throws when any request fails, the payload is malformed, or the browser
@@ -62,16 +74,17 @@ export async function exportCampusReport(): Promise<{ filename: string }> {
   }
 
   const generatedAt = new Date();
-  const csv = buildReportCsv({
+  const workbook: Workbook = await buildCampusReportWorkbook({
     generatedAt,
     stats: statsBody,
     stations,
     fillHistory,
     pointsDaily,
   });
-  const filename = `campus-ops-${generatedAt.toISOString().slice(0, 10)}.csv`;
+  const buffer = (await workbook.xlsx.writeBuffer()) as ArrayBuffer;
+  const filename = reportFilename(generatedAt);
 
-  downloadTextFile(csv, filename, 'text/csv');
+  downloadBinaryFile(buffer, filename, XLSX_MIME);
 
   return { filename };
 }
