@@ -25,8 +25,15 @@ import { env } from '../src/env.js';
 import { parseMongoTarget } from '../src/lib/db-target.js';
 import { Bin } from '../src/models/Bin.js';
 import { Station } from '../src/models/Station.js';
-import { groupBinsByStation, toStationDto, EXPECTED_CONTAINERS } from '../src/lib/stations.js';
+import { groupBinsByStation, toStationDto, EXPECTED_CONTAINERS, fillStatusForLevel } from '../src/lib/stations.js';
 import { DEMO_BIN_ASSIGNMENTS } from './demo-stations.js';
+import {
+  CAMPUS_BIN_ASSIGNMENTS,
+  CAMPUS_DEVICE_IDS,
+  CAMPUS_MOCK_STATE,
+  CAMPUS_TOTAL_BIN_COUNT,
+  CAMPUS_TOTAL_STATION_COUNT,
+} from './campus-stations.js';
 import { seedDemoData } from './seed.js';
 
 const ALLOWED_DATABASE = 'CAMPUS';
@@ -156,15 +163,27 @@ try {
   const scanEventsAfter = await db.collection('scanevents').countDocuments({});
 
   const expected = new Map(
-    DEMO_BIN_ASSIGNMENTS.map(({ deviceId, stationId, wasteType }) => [
-      deviceId,
-      { stationId, wasteType },
-    ]),
+    [...DEMO_BIN_ASSIGNMENTS, ...CAMPUS_BIN_ASSIGNMENTS].map(
+      ({ deviceId, stationId, wasteType }) => [
+        deviceId,
+        { stationId, wasteType },
+      ],
+    ),
+  );
+  const addedDeviceIds = new Set(CAMPUS_DEVICE_IDS);
+  const mockByDevice = new Map(
+    CAMPUS_MOCK_STATE.map((mock) => [mock.deviceId, mock]),
   );
 
   const problems = [];
-  if (stations.length !== 2) problems.push(`expected 2 stations, found ${stations.length}`);
-  if (bins.length !== 6) problems.push(`expected 6 bins, found ${bins.length}`);
+  if (stations.length !== CAMPUS_TOTAL_STATION_COUNT) {
+    problems.push(
+      `expected ${CAMPUS_TOTAL_STATION_COUNT} stations, found ${stations.length}`,
+    );
+  }
+  if (bins.length !== CAMPUS_TOTAL_BIN_COUNT) {
+    problems.push(`expected ${CAMPUS_TOTAL_BIN_COUNT} bins, found ${bins.length}`);
+  }
   if (studentsAfter !== 0) problems.push(`expected 0 students, found ${studentsAfter}`);
   if (scanEventsAfter !== 0) problems.push(`expected 0 scan events, found ${scanEventsAfter}`);
 
@@ -181,6 +200,22 @@ try {
     }
     if (bin.wasteType !== want.wasteType) {
       problems.push(`${bin.deviceId} material ${bin.wasteType} ≠ ${want.wasteType}`);
+    }
+    if (addedDeviceIds.has(bin.deviceId)) {
+      const mock = mockByDevice.get(bin.deviceId);
+      if (!mock || bin.fillLevel !== mock.fillLevel) {
+        problems.push(
+          `${bin.deviceId} fill ${bin.fillLevel} ≠ demo state ${mock?.fillLevel ?? '(missing)'}`,
+        );
+      }
+      if (!mock || bin.status !== fillStatusForLevel(mock.fillLevel)) {
+        problems.push(
+          `${bin.deviceId} status ${bin.status} ≠ derived ${mock ? fillStatusForLevel(mock.fillLevel) : '(unknown)'}`,
+        );
+      }
+      if (!bin.lastSyncAt) {
+        problems.push(`${bin.deviceId} has no demo lastSyncAt stamp`);
+      }
     }
   }
 

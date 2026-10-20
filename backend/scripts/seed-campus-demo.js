@@ -17,9 +17,11 @@
  *   - the six demo bins already exist with the reviewed station/material
  *     assignment (a mismatch aborts before any write).
  *
- * It writes only: the six demo bins' live state, and the ScanEvents/students
- * owned by the demo id sets. It never deletes users, never drops a database or
- * collection, and never edits `.env`. The admin `_id` and password hash are
+ * It writes only: the six demo bins' live state, the ScanEvents/students owned
+ * by the demo id sets, and the twelve approved containers' demo live state
+ * (`applyCampusMockState` — synthetic fill/sync stamps from
+ * `scripts/campus-stations.js`). It never deletes users, never drops a database
+ * or collection, and never edits `.env`. The admin `_id` and password hash are
  * captured before and re-checked after; a change aborts with a non-zero exit.
  */
 import mongoose from 'mongoose';
@@ -29,6 +31,10 @@ import { Bin } from '../src/models/Bin.js';
 import { DEMO_BIN_ASSIGNMENTS } from './demo-stations.js';
 import { DEMO_DEVICE_IDS } from './demo-history.js';
 import { applyDemoHistory, checkDemoHistory } from './demo-history-apply.js';
+import {
+  applyCampusMockState,
+  checkCampusStations,
+} from './campus-stations-apply.js';
 
 const ALLOWED_DATABASE = 'CAMPUS';
 const CONFIRM_FLAG = '--confirm-seed-campus';
@@ -141,6 +147,10 @@ try {
   const now = new Date();
   const applied = await applyDemoHistory({ now, log: (line) => console.log(`  ${line}`) });
 
+  // 4b. Re-stamp the twelve approved containers' demo live state so the whole
+  //     six-station fleet reads fresh at demo time.
+  await applyCampusMockState({ now, log: (line) => console.log(`  ${line}`) });
+
   // 5. The admin document must be byte-for-byte unchanged.
   const usersAfter = await db.collection('users').countDocuments({});
   const adminAfter = await db
@@ -159,6 +169,7 @@ try {
 
   // 6. Re-run the comparison against the same clock used to write.
   const check = await checkDemoHistory({ now });
+  const campusCheck = await checkCampusStations({ now });
 
   console.log('');
   console.log(
@@ -181,10 +192,22 @@ try {
       `points days last7=${check.actual.points7.length}`,
   );
   console.log(`Replaced on this run: scans=-${applied.deletedScans} students=-${applied.deletedStudents}`);
+  console.log(
+    `Campus fleet: ${campusCheck.dtos.length} approved stations, ` +
+      `${campusCheck.bins.length} containers stamped with demo fill/sync state.`,
+  );
 
+  const failed = !check.ok || !campusCheck.ok;
   if (!check.ok) {
-    console.error('\n✗ Verification failed:');
+    console.error('\n✗ Demo-history verification failed:');
     for (const problem of check.problems) console.error(`  - ${problem}`);
+  }
+  if (!campusCheck.ok) {
+    console.error('\n✗ Campus fleet verification failed:');
+    for (const problem of campusCheck.problems) console.error(`  - ${problem}`);
+  }
+
+  if (failed) {
     process.exitCode = 1;
   } else {
     console.log('\n✓ Demo data seeded and verified. Admin preserved unchanged.');

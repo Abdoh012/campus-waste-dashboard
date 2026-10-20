@@ -59,7 +59,9 @@ and reports `lastKnown: true` instead of being flattened to `offline`.
 never inferred from a device name or id.
 
 The example coordinates are approximate **demo** positions on the BATU campus,
-not surveyed physical bin installations.
+not surveyed physical bin installations. The four additional approved stations
+in `scripts/campus-stations.js` are also approximate anchors inside the
+OSM-mapped campus envelope; they are not surveyed building coordinates.
 
 ### `GET /api/stations` — auth
 
@@ -236,6 +238,56 @@ a different non-null `wasteType` — it will not overwrite real metadata, move a
 container between stations, or reclassify a container. Re-running a seed script
 against a database that already has the demo records is a no-op.
 
+### Approved additional campus stations
+
+The four approved station anchors are kept separate from the synthetic history
+fixture in `scripts/campus-stations.js`:
+
+| Station id | Area | Approximate anchor |
+| --- | --- | --- |
+| `STN-SOUTH` | South-west entrance / administration / parking | `30.856775, 29.571783` |
+| `STN-TEACHING` | Educational building | `30.858328, 29.571184` |
+| `STN-UNION` | Cafeteria / student activity | `30.858062, 29.571884` |
+| `STN-WORKSHOPS` | Workshops / laboratories | `30.857362, 29.572167` |
+
+Each station has three containers (`ESP32-BIN-07` … `ESP32-BIN-18`), one each of
+`paper`, `plastic` and `liquids`. The coordinates are **approximate anchors**
+inside the OSM-mapped campus envelope, not surveyed building entrances. They
+still need field verification of the official boundary, gates, building
+entrances, bin pads, power/network access and collection-truck access.
+
+The containers carry **synthetic demo live state** stamped by the demo seeder
+from `CAMPUS_MOCK_STATE` in `scripts/campus-stations.js`: a fixed fill level per
+device, a `lastSyncAt` minutes before the run's clock, and the fill-derived
+status. It is demo data for the dashboard — never presented as a measurement
+from physical ESP32 hardware — and these twelve devices deliberately have no
+`ScanEvent` rows, so the 30-day fill chart and the points totals stay the
+six-bin demo slice. Re-running `npm run seed` or
+`seed-campus-demo.js --confirm-seed-campus` re-stamps the twelve containers
+(refreshing the online window) alongside the original six demo bins. The map
+already renders one marker per station, so no map component, style or
+coordinate data was changed. The ids sort after `STN-NORTH`, which keeps the
+existing marker numbering stable (03–06 are appended).
+
+For the remote `CAMPUS` database, use the guarded, additive one-off:
+
+```bash
+node scripts/add-campus-stations.js --confirm-add-campus-stations
+```
+
+It refuses unless both `MONGODB_URI` and the connected database are exactly
+`CAMPUS`, all five expected collections exist, the two existing demo stations
+are present, and the fixture is structurally valid. It creates only missing
+stations/containers, never overwrites an existing station or container
+assignment, and stamps only the twelve approved containers' demo live state. It
+verifies 6 stations / 18 containers afterwards and aborts if the admin
+`_id`/password hash, the student count or the scan-event count changed.
+Re-running is a no-op for existing records while the approved 6/18 layout is
+unchanged.
+
+`npm run seed` also creates these four stations and twelve containers locally,
+so local development shows the same fleet as `CAMPUS`.
+
 ## Installation
 
 Prerequisites: Node.js ≥ 20.19, npm ≥ 10, a running MongoDB (v7 tested).
@@ -244,16 +296,19 @@ Prerequisites: Node.js ≥ 20.19, npm ≥ 10, a running MongoDB (v7 tested).
 cd backend
 npm install
 cp .env.example .env       # then edit — at minimum set JWT_SECRET
-npm run seed               # creates missing admin/stations/containers; never overwrites
+npm run seed               # creates missing admin, demo and approved stations/containers
 npm start                  # API on http://localhost:5000/api
 ```
 
 `npm run seed` is additive: it creates only records that are missing, so
 existing bins keep their readings, coordinates, station associations and
-material classifications. An existing admin password is never re-hashed. `npm run seed -- --reset` deletes
-**only** the six demo device ids and recreates them; no other bin is touched.
-The script refuses to run unless `MONGODB_URI` is a single local development
-host (see `src/lib/db-target.js`).
+material classifications. It creates the two synthetic-history demo stations
+and the four approved campus stations, then stamps the twelve approved
+containers with their demo fill/sync state. An existing admin password is never
+re-hashed. `npm run seed -- --reset` deletes **only** the six history demo
+device ids and recreates them; no other bin is touched. The script refuses to
+run unless `MONGODB_URI` is a single local development host (see
+`src/lib/db-target.js`).
 
 The admin password is printed only when it was generated; when it comes from
 `SEED_ADMIN_PASSWORD` it is applied only at first creation and never printed.
@@ -289,6 +344,14 @@ It refuses unless both `MONGODB_URI` and the connected database are exactly
 present with their reviewed station/material assignment. It captures the single
 admin `_id` and password hash before and after (aborting on any change) and never
 drops a database or collection.
+
+This seeder owns only the **six-device / two-station synthetic history slice**.
+It does not create the four approved campus stations; those are added once with
+`add-campus-stations.js` (above). It does re-stamp their demo fill/sync state
+on every run, so a single command refreshes the whole six-station fleet's
+online window right before a demo. `checkDemoHistory` scopes its
+station/container summary to the demo fixture ids, so additional real fleet
+stations cannot make the history check fail.
 
 Connectivity in the demo is wall-clock relative: a container reads `online` only
 for `OFFLINE_THRESHOLD_MINUTES` (default 5) after its `lastSyncAt`. Re-run the
@@ -350,6 +413,8 @@ npm test
 - Passwords stored as bcrypt hashes; login runs a dummy compare for unknown
   emails so response timing doesn't reveal which addresses exist.
 - JWT is HS256 with an env secret; production refuses to start without one.
+- MongoDB startup logs print only the database name; URI/password substrings
+  are redacted from driver errors and connection-failure messages.
 - `PUT /api/bins/:deviceId/status` is **unauthenticated by default** because
   the device contract has no auth header — intended for a trusted campus
   LAN. Set `DEVICE_INGEST_KEY` to require `X-Device-Key` on that route if
@@ -387,16 +452,22 @@ backend/
 │       ├── stations.js    # GET /, GET /:stationId
 │       └── index.js       # /api mount + health
 ├── scripts/
+│   ├── add-campus-stations.js    # guarded CAMPUS-only add of the four approved stations
 │   ├── assign-demo-stations.js  # safe dev association (dry-run default; conflict-aborting)
+│   ├── campus-stations.js       # approved four-station fixture + pure planning/validation
+│   ├── campus-stations-apply.js # additive, never-connected apply/verify for that fixture
 │   ├── demo-history.js          # pure 30-day demo fixture + expected aggregates
 │   ├── demo-history-apply.js    # scoped, idempotent apply/verify for that fixture
 │   ├── demo-stations.js         # dev-only station fixture + mapping
+│   ├── reset-campus-demo.js     # guarded destructive reset/recreate of the CAMPUS demo
 │   ├── seed-campus-demo.js      # guarded CAMPUS-only one-off for the rich demo
 │   ├── station-association.js   # pure conflict/plan logic for the association script
 │   ├── seed-plan.js             # pure "create only missing demo bins" planning
-│   └── seed.js                  # dev admin + demo stations/bins (additive by default)
+│   └── seed.js                  # dev admin + demo/approved stations + bins (additive)
 ├── test/
 │   ├── api.test.js        # contract integration tests (node:test)
+│   ├── campus-stations.test.js       # pure fixture + planner conflict tests
+│   ├── campus-stations-apply.test.js # DB integration: add, verify, idempotency
 │   ├── db-target.test.js  # safe-target guards for scripts/tests
 │   ├── demo-history.test.js       # pure fixture + aggregate arithmetic
 │   ├── demo-history-apply.test.js # DB integration: apply, verify, idempotency

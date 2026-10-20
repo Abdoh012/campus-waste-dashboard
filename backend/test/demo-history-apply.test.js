@@ -13,6 +13,8 @@ import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import mongoose from 'mongoose';
 import { assertSafeTestTarget } from '../src/lib/db-target.js';
+import { Bin } from '../src/models/Bin.js';
+import { Station } from '../src/models/Station.js';
 import { seedDemoData } from '../scripts/seed.js';
 import { applyDemoHistory, checkDemoHistory } from '../scripts/demo-history-apply.js';
 
@@ -55,7 +57,9 @@ const quiet = () => {};
 describe('demo history apply + verify', { skip }, () => {
   before(async () => {
     await mongoose.connection.dropDatabase();
-    // Reuse the real seed path so stations and the six bins exist first.
+    // Reuse the real seed path so the two history demo stations and six bins
+    // exist. It also creates the four approved campus stations, which are
+    // outside this suite's synthetic history slice.
     await seedDemoData({ log: quiet });
   });
 
@@ -89,5 +93,30 @@ describe('demo history apply + verify', { skip }, () => {
 
     assert.deepEqual(second.actual, first.actual);
     assert.equal(second.ok, true);
+  });
+
+  it('verifies only the synthetic history slice, not additional fleet stations', async () => {
+    await Station.create({
+      stationId: 'STN-EXTRA',
+      name: 'Extra test station',
+      location: { building: 'Extra', lat: 30.858, lng: 29.5715 },
+    });
+    await Bin.create({
+      deviceId: 'EXTRA-BIN-01',
+      name: 'Extra test bin',
+      stationId: 'STN-EXTRA',
+      wasteType: 'paper',
+      fillLevel: 42,
+      status: 'healthy',
+      lastSyncAt: new Date(NOW),
+    });
+
+    await applyDemoHistory({ now: NOW, log: quiet });
+    const check = await checkDemoHistory({ now: NOW });
+
+    assert.deepEqual(check.problems, []);
+    assert.equal(check.ok, true);
+    assert.equal(check.actual.stations.total, 2);
+    assert.equal(check.actual.containers.total, 6);
   });
 });

@@ -1,10 +1,14 @@
 /**
  * Development seed — additive by default.
  *
- *   npm run seed             create the admin, two demo stations and six sample
- *                            bins, but never overwrite any record that exists
- *   npm run seed -- --reset   first delete the six demo bins (by deviceId), then
- *                            recreate them; no other bin is ever touched
+ *   npm run seed             create the admin, the two synthetic-history demo
+ *                            stations + six sample bins, and the four approved
+ *                            campus stations + twelve bins stamped with demo
+ *                            fill/sync data; never overwrite any record that
+ *                            exists
+ *   npm run seed -- --reset   first delete the six history demo bins (by
+ *                            deviceId), then recreate them; no other bin is
+ *                            ever touched
  *
  * Safety gate: the script refuses to run unless `MONGODB_URI` names a single
  * local (127.0.0.1 / localhost / ::1) development database and `NODE_ENV` is
@@ -40,6 +44,7 @@ import {
   DEMO_BIN_WASTE_TYPE_MAP,
   DEMO_STATIONS,
 } from './demo-stations.js';
+import { applyCampusStations, applyCampusMockState } from './campus-stations-apply.js';
 import { demoDeviceIds, planSeedBins } from './seed-plan.js';
 
 const MINUTE = 60_000;
@@ -180,6 +185,10 @@ export async function seedDemoData({ reset = false, log = console.log, redactAdm
   await seedStations({ log });
   log('');
   await seedBins({ reset, log });
+  log('');
+  const now = new Date();
+  await applyCampusStations({ now, log });
+  await applyCampusMockState({ now, log });
   log('\n✓ Seed complete.');
 }
 

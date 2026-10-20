@@ -9,6 +9,12 @@
  *
  * A station owns one authoritative location; containers reference it by
  * `stationId` and do not need their own coordinates.
+ *
+ * The four additional approved campus stations (and their twelve containers,
+ * which carry demo fill/sync state stamped by the demo seeder) live in
+ * `campus-stations.js`. They are kept
+ * separate because they are part of the real fleet, not this synthetic history
+ * fixture; the demo-history seeder must never reset their live state.
  */
 import { WASTE_TYPES } from '../src/lib/waste-types.js';
 

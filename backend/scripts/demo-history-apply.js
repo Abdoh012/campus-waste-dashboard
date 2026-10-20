@@ -20,6 +20,7 @@ import {
   DEMO_STUDENT_IDS,
   buildDemoHistory,
 } from './demo-history.js';
+import { DEMO_STATIONS } from './demo-stations.js';
 
 const THRESHOLD_MS = 5 * 60_000;
 
@@ -72,7 +73,7 @@ export async function applyDemoHistory({ now = new Date(), log = () => {} } = {}
 
 /** Read back the demo slice of the database in the shape `expected` uses. */
 export async function readDemoHistory({ now = new Date(), thresholdMs = THRESHOLD_MS } = {}) {
-  const [stations, bins, demoScans, demoStudents] = await Promise.all([
+  const [allStations, allBins, demoScans, demoStudents] = await Promise.all([
     Station.find().lean(),
     Bin.find().lean(),
     ScanEvent.find({ deviceId: { $in: DEMO_DEVICE_IDS } })
@@ -80,6 +81,17 @@ export async function readDemoHistory({ now = new Date(), thresholdMs = THRESHOL
       .lean(),
     Student.find({ studentId: { $in: DEMO_STUDENT_IDS } }).lean(),
   ]);
+
+  // Scope the summary to the synthetic history fixture. The four approved
+  // campus stations are real fleet entries with no synthetic history; unrelated
+  // stations/containers must not make the demo-history check fail or be
+  // counted as demo containers.
+  const demoStationIds = new Set(DEMO_STATIONS.map((station) => station.stationId));
+  const demoDeviceIds = new Set(DEMO_DEVICE_IDS);
+  const stations = allStations.filter((station) =>
+    demoStationIds.has(station.stationId),
+  );
+  const bins = allBins.filter((bin) => demoDeviceIds.has(bin.deviceId));
 
   const summary = summarizeStationAndContainers(stations, bins, {
     now: now.getTime(),
