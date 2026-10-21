@@ -139,7 +139,7 @@ second feature actually needs it.
 ## Scripts
 
 ```bash
-npm run dev        # dev server on http://localhost:5173
+npm run dev        # dev server on http://localhost:5175 (see vite.config.js)
 npm run typecheck  # tsc --noEmit
 npm run build      # tsc --noEmit && vite build  → FrontEnd/dist
 npm run preview    # serve the built bundle on port 4173

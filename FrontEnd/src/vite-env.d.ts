@@ -18,7 +18,8 @@ interface ImportMetaEnv {
   readonly VITE_GOOGLE_MAPS_MAP_ID?: string;
   /**
    * Base URL of the campus API. Defaults to the local Express server
-   * (`http://localhost:5000/api`) when unset.
+   * (`http://localhost:5001/api`) when unset — 5000 is often reserved on
+   * Windows (http.sys / IIS Express / Laravel Herd).
    */
   readonly VITE_API_BASE_URL?: string;
 }

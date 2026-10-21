@@ -7,11 +7,13 @@
  * the token: callers treat that as "session ended".
  *
  * `VITE_API_BASE_URL` points at a deployed API; locally it defaults to the
- * Express server on port 5000.
+ * Express server on port 5001 (5000 is commonly reserved on Windows by
+ * http.sys, e.g. IIS Express or Laravel Herd's `HerdHelper`, which answers
+ * there with a bare 403).
  */
 
 export const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000/api'
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5001/api'
 ).replace(/\/+$/, '');
 
 /** localStorage key the JWT is kept under. */

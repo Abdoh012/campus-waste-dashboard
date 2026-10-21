@@ -71,7 +71,7 @@ npm install
 npm run dev
 ```
 
-The app is served at `http://localhost:5173` by default.
+The app is served at `http://localhost:5175` by default.
 
 ## Production Build
 
