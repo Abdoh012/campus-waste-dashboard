@@ -1,6 +1,6 @@
 import { Form, redirect, useNavigation } from "react-router";
 import { ArrowRight, LoaderCircle } from "lucide-react";
-import { showError, showInfo } from "../../../shared/ui/notifications";
+import { showError } from "../../../shared/ui/notifications";
 import { translateNow } from "../../../shared/i18n/catalog";
 import { useI18n } from "../../../shared/i18n/useI18n";
 import { ApiError, setAuthToken } from "../../../services/apiClient";
@@ -9,9 +9,6 @@ import TextField from "./TextField";
 
 const EMAIL_ID = "operator-email";
 const PASSWORD_ID = "operator-password";
-
-const LINK =
-  "cursor-pointer rounded text-xs font-medium text-primary-text transition-colors duration-200 enabled:hover:text-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60";
 
 export default function LoginForm() {
   const navigation = useNavigation();
@@ -41,16 +38,6 @@ export default function LoginForm() {
           placeholder={t("auth.password.placeholder")}
           disabled={isSubmitting}
         />
-      </div>
-
-      <div className="mt-4">
-        <button
-          type="button"
-          className={`${LINK} py-1`}
-          onClick={() => showInfo(t("auth.toast.passwordReset"))}
-        >
-          {t("auth.forgot")}
-        </button>
       </div>
 
       <button
